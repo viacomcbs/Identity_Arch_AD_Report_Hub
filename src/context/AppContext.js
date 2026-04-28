@@ -30,14 +30,13 @@ export const AppProvider = ({ children }) => {
         const response = await axios.get('/api/topology/forests');
         const data = response.data.data;
         setForestData(data);
-        // Auto-select first domain if none is already selected
-        // (use functional update so we don't depend on selectedDomain here)
+        // Auto-select first forest root if none is already selected
         setSelectedDomain((prev) => {
           if (prev) return prev;
-          const firstDomain = data?.domains?.[0]?.name || '';
-          if (firstDomain) {
-            localStorage.setItem('ad-report-hub-selected-domain', firstDomain);
-            return firstDomain;
+          const firstForestRoot = data?.forests?.[0]?.root || '';
+          if (firstForestRoot) {
+            localStorage.setItem('ad-report-hub-selected-domain', firstForestRoot);
+            return firstForestRoot;
           }
           return prev;
         });
@@ -151,6 +150,31 @@ export const AppProvider = ({ children }) => {
     return favorites.some(f => f.page === page && f.queryId === queryId);
   }, [favorites]);
 
+  // Validates that enteredDomain belongs to the currently selected forest.
+  // Returns null if valid, or an error string if the domain is from the wrong forest.
+  const validateDomainForForest = useCallback((enteredDomain) => {
+    if (!enteredDomain || !forestData?.forests) return null;
+    const normalized = enteredDomain.toLowerCase().trim();
+    const currentForest = forestData.forests.find(
+      f => f.root.toLowerCase() === (selectedDomain || '').toLowerCase()
+    );
+    if (!currentForest) return null;
+
+    const forestRoot = currentForest.root.toLowerCase();
+    const belongsToCurrent = normalized === forestRoot || normalized.endsWith('.' + forestRoot);
+    if (belongsToCurrent) return null;
+
+    // Find which forest the entered domain belongs to
+    const wrongForest = forestData.forests.find(f => {
+      const r = f.root.toLowerCase();
+      return normalized === r || normalized.endsWith('.' + r);
+    });
+    if (wrongForest) {
+      return `"${enteredDomain}" belongs to the ${wrongForest.name}. Switch the forest selector to ${wrongForest.name} before running this report.`;
+    }
+    return `"${enteredDomain}" does not belong to the selected ${currentForest.name} (${currentForest.root}). Verify the domain name and selected forest.`;
+  }, [selectedDomain, forestData]);
+
   const value = {
     isLoading,
     currentReport,
@@ -171,7 +195,8 @@ export const AppProvider = ({ children }) => {
     forestData,
     forestLoading,
     selectedDomain,
-    changeSelectedDomain
+    changeSelectedDomain,
+    validateDomainForForest,
   };
 
   return (

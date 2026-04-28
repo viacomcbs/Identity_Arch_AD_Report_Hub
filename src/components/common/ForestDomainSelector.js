@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 
 const ForestDomainSelector = () => {
@@ -16,39 +16,23 @@ const ForestDomainSelector = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Group domains by forest
-  const domainsByForest = useMemo(() => {
-    if (!forestData?.domains) return {};
-    const groups = {};
-    for (const d of forestData.domains) {
-      if (!groups[d.forest]) groups[d.forest] = [];
-      groups[d.forest].push(d);
-    }
-    return groups;
-  }, [forestData]);
+  const forests = forestData?.forests || [];
 
-  const handleSelect = (domainName) => {
-    changeSelectedDomain(domainName);
+  const selectedForest = forests.find(
+    f => f.root.toLowerCase() === (selectedDomain || '').toLowerCase()
+  );
+
+  const handleSelect = (forestRoot) => {
+    changeSelectedDomain(forestRoot);
     setIsOpen(false);
   };
 
-  const getDisplayLabel = () => {
-    if (!selectedDomain) return 'Select Domain';
-    const found = forestData?.domains?.find(d => d.name === selectedDomain);
-    return found ? found.label : selectedDomain;
-  };
-
-  // Check if selected domain requires elevated access
-  const selectedRequiresElevated = useMemo(() => {
-    if (!selectedDomain || !forestData?.domains) return false;
-    const found = forestData.domains.find(d => d.name === selectedDomain);
-    return found?.requiresElevated || false;
-  }, [selectedDomain, forestData]);
+  const displayLabel = selectedForest ? selectedForest.label : 'Select Forest';
 
   if (forestLoading) {
     return (
       <div style={selectorStyle}>
-        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Loading domains...</span>
+        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Loading forests...</span>
       </div>
     );
   }
@@ -57,77 +41,52 @@ const ForestDomainSelector = () => {
     <div ref={dropdownRef} style={selectorStyle}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          ...buttonStyle,
-          borderColor: selectedRequiresElevated ? '#f59e0b' : 'var(--border-color)',
-        }}
-        title="Select target domain for reports"
+        style={buttonStyle}
+        title="Select target AD forest for reports"
       >
-        <span style={{ fontSize: '14px' }}>{'\uD83C\uDF10'}</span>
-        <span style={{ fontSize: '13px', fontWeight: 500 }}>{getDisplayLabel()}</span>
-        {selectedRequiresElevated && <span title="Requires A/DA account" style={{ fontSize: '13px' }}>{'\u26A0\uFE0F'}</span>}
-        <span style={{ fontSize: '10px', marginLeft: '2px' }}>{isOpen ? '\u25B2' : '\u25BC'}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, opacity: 0.7 }}>
+          <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+        </svg>
+        <span style={{ fontSize: '13px', fontWeight: 500 }}>{displayLabel}</span>
+        <span style={{ fontSize: '10px', marginLeft: '2px', opacity: 0.6 }}>{isOpen ? '▲' : '▼'}</span>
       </button>
 
       {isOpen && (
         <div style={dropdownStyle}>
-          {/* Domains grouped by forest */}
-          {Object.entries(domainsByForest).map(([forestName, domains]) => (
-            <div key={forestName}>
-              <div style={forestHeaderStyle}>
-                <span>{'\uD83C\uDF32'}</span>
-                <span>{forestName} Forest</span>
-              </div>
-              {domains.map((domain) => (
-                <div
-                  key={domain.name}
-                  onClick={() => handleSelect(domain.name)}
-                  style={{
-                    ...itemStyle,
-                    paddingLeft: '28px',
-                    fontWeight: selectedDomain === domain.name ? 600 : 400,
-                    backgroundColor: selectedDomain === domain.name ? 'var(--accent-light)' : 'transparent',
-                  }}
-                >
-                  <span style={{ fontSize: '13px', flexShrink: 0 }}>
-                    {domain.requiresElevated ? '\uD83D\uDD12' : '\uD83D\uDCE6'}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {domain.label}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {domain.description}
-                    </div>
+          <div style={dropdownHeaderStyle}>AD Forest</div>
+          {forests.map((forest) => {
+            const isSelected = selectedForest?.id === forest.id;
+            return (
+              <div
+                key={forest.id}
+                onClick={() => handleSelect(forest.root)}
+                style={{
+                  ...itemStyle,
+                  backgroundColor: isSelected ? 'var(--accent-light)' : 'transparent',
+                  fontWeight: isSelected ? 600 : 400,
+                }}
+                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; }}
+                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                    {forest.label}
                   </div>
-                  {domain.requiresElevated && (
-                    <span
-                      title="Requires A/DA account"
-                      style={{
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        borderRadius: '3px',
-                        backgroundColor: '#fef3c7',
-                        color: '#92400e',
-                        fontWeight: 600,
-                        flexShrink: 0,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {'\u26A0'} Elevated
-                    </span>
-                  )}
-                  {selectedDomain === domain.name && <span style={checkStyle}>{'\u2713'}</span>}
+                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    {forest.description}
+                  </div>
                 </div>
-              ))}
-            </div>
-          ))}
+                {isSelected && (
+                  <span style={{ color: 'var(--accent-primary)', fontWeight: 700, fontSize: '14px', flexShrink: 0 }}>✓</span>
+                )}
+              </div>
+            );
+          })}
 
-          {!forestData?.domains?.length && (
+          {forests.length === 0 && (
             <div style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center' }}>
-              No domains configured. Edit server/config/domains.json.
+              No forests configured. Edit server/config/domains.json.
             </div>
           )}
         </div>
@@ -160,49 +119,32 @@ const dropdownStyle = {
   top: '100%',
   right: 0,
   marginTop: '4px',
-  width: '360px',
-  maxHeight: '420px',
-  overflowY: 'auto',
+  width: '300px',
   backgroundColor: 'var(--bg-primary)',
   border: '1px solid var(--border-color)',
   borderRadius: '8px',
   boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
   zIndex: 1000,
+  overflow: 'hidden',
 };
 
-const forestHeaderStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '6px',
-  padding: '8px 16px 4px 16px',
-  fontSize: '11px',
+const dropdownHeaderStyle = {
+  padding: '8px 16px 6px',
+  fontSize: '10px',
   fontWeight: 700,
-  color: 'var(--text-secondary)',
+  color: 'var(--text-muted)',
   textTransform: 'uppercase',
-  letterSpacing: '0.5px',
+  letterSpacing: '0.8px',
+  borderBottom: '1px solid var(--border-color)',
 };
 
 const itemStyle = {
   display: 'flex',
   alignItems: 'center',
-  gap: '8px',
-  padding: '8px 16px',
+  gap: '10px',
+  padding: '10px 16px',
   cursor: 'pointer',
   transition: 'background-color 0.1s ease',
-  color: 'var(--text-primary)',
-};
-
-const dividerStyle = {
-  height: '1px',
-  backgroundColor: 'var(--border-color)',
-  margin: '4px 0',
-};
-
-const checkStyle = {
-  color: 'var(--accent-primary)',
-  fontWeight: 700,
-  fontSize: '14px',
-  flexShrink: 0,
 };
 
 export default ForestDomainSelector;

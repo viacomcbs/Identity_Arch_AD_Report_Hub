@@ -7,6 +7,7 @@ import { AppProvider, useApp } from './context/AppContext';
 
 // Layout Components
 import Navbar from './components/Layout/Navbar';
+import TopBar from './components/Layout/TopBar';
 import Footer from './components/Layout/Footer';
 
 // Page Components
@@ -28,7 +29,7 @@ import ServiceAccounts from './components/ServiceAccounts/ServiceAccounts';
 import Topology from './components/Topology/Topology';
 import Search from './components/Search/Search';
 import Compliance from './components/Compliance/Compliance';
-import Security from './components/Security/Security';
+import Governance from './components/Governance/Governance';
 import Help from './components/Help/Help';
 
 // Hooks & Common Components
@@ -98,6 +99,7 @@ function AppContent() {
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       <div className={`app ${theme}`}>
         <Navbar />
+        <TopBar />
         <main className="main-content">
           <Breadcrumb />
           <Routes>
@@ -116,7 +118,7 @@ function AppContent() {
             <Route path="/service-accounts" element={<ServiceAccounts />} />
             <Route path="/search" element={<Search />} />
             <Route path="/compliance" element={<Compliance />} />
-            <Route path="/security" element={<Security />} />
+            <Route path="/governance" element={<Governance />} />
             <Route path="/activity-logs" element={<ActivityLogs />} />
             <Route path="/license" element={<License />} />
             <Route path="/help" element={<Help />} />

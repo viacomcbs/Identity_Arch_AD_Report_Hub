@@ -54,6 +54,22 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/domain-controllers/count - Lightweight DC count for a forest
+router.get('/count', async (req, res) => {
+  try {
+    const { domain } = req.query;
+    const args = {};
+    if (domain) args.ForestDomain = domain;
+
+    const result = await runPowerShell('Get-AllDomainControllers.ps1', args, 'domain-controllers');
+    const data = Array.isArray(result.data) ? result.data : (result.data ? [result.data] : []);
+    res.json({ count: data.length, domain: domain || null });
+  } catch (error) {
+    console.error('DC count error:', error);
+    res.status(500).json({ error: error.message, count: null });
+  }
+});
+
 // GET /api/domain-controllers/health - DC Resource Health
 router.get('/health', async (req, res) => {
   try {

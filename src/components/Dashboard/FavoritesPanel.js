@@ -1,78 +1,67 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import './FavoritesPanel.css';
 
-const pageIcons = {
-  '/users': '\uD83D\uDC64',
-  '/groups': '\uD83D\uDC65',
-  '/computers': '\uD83D\uDCBB',
-  '/domain-controllers': '\uD83D\uDDA5\uFE0F',
-  '/sites-subnets': '\uD83C\uDF10',
-  '/topology': '\uD83D\uDD17',
-  '/service-accounts': '\u2699\uFE0F',
-  '/containers': '\uD83D\uDCC1',
-  '/compliance': '\uD83D\uDEE1\uFE0F',
-  '/gpos': '\uD83D\uDCCB',
-  '/printers': '\uD83D\uDDA8\uFE0F',
-  '/contacts': '\uD83D\uDCC7',
+const sectionAccents = {
+  '/users': '#2563eb',
+  '/groups': '#2563eb',
+  '/service-accounts': '#2563eb',
+  '/contacts': '#2563eb',
+  '/domain-controllers': '#059669',
+  '/computers': '#059669',
+  '/sites-subnets': '#059669',
+  '/topology': '#059669',
+  '/gpos': '#059669',
+  '/containers': '#059669',
+  '/printers': '#059669',
+  '/compliance': '#0e7490',
+  '/governance': '#0e7490',
+  '/search': '#64748b',
+  '/activity-logs': '#64748b',
+  '/help': '#64748b',
+  '/license': '#64748b',
 };
 
 const FavoritesPanel = () => {
   const { favorites, removeFavorite } = useApp();
   const navigate = useNavigate();
 
-  if (favorites.length === 0) return null;
-
-  const handleClick = (fav) => {
-    navigate(fav.page);
-  };
-
   return (
-    <div className="favorites-panel" style={{ marginBottom: '32px' }}>
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span>\u2B50</span> Favorites
-      </h2>
-      <div className="actions-grid">
-        {favorites.map((fav) => (
-          <div
-            key={fav.id}
-            className="action-card"
-            style={{
-              cursor: 'pointer',
-              position: 'relative',
-              borderLeftColor: 'var(--accent-primary)',
-            }}
-            onClick={() => handleClick(fav)}
-          >
-            <span className="action-icon">{pageIcons[fav.page] || '\uD83D\uDCC4'}</span>
-            <span className="action-label">{fav.label}</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                removeFavorite(fav.page, fav.queryId);
-              }}
-              title="Remove from favorites"
-              style={{
-                position: 'absolute',
-                top: '8px',
-                right: '8px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px',
-                opacity: 0.5,
-                color: 'var(--text-secondary)',
-                padding: '2px 4px',
-                lineHeight: 1,
-              }}
-              onMouseEnter={(e) => { e.target.style.opacity = '1'; }}
-              onMouseLeave={(e) => { e.target.style.opacity = '0.5'; }}
-            >
-              &times;
-            </button>
-          </div>
-        ))}
+    <div className="fav-section">
+      <div className="fav-header">
+        <span className="fav-title">Favourites</span>
+        <span className="fav-count">{favorites.length}</span>
       </div>
+      {favorites.length === 0 ? (
+        <div className="fav-empty">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          <span>No favourites yet. Star any report card to pin it here.</span>
+        </div>
+      ) : (
+        <div className="fav-grid">
+          {favorites.map(fav => (
+            <div
+              key={fav.id}
+              className="fav-card"
+              style={{ '--fa': sectionAccents[fav.page] || 'var(--accent-primary)' }}
+              onClick={() => navigate(fav.page)}
+            >
+              <div className="fav-card-label">{fav.label}</div>
+              <div className="fav-card-page">{fav.page.replace('/', '')}</div>
+              <button
+                className="fav-card-remove"
+                onClick={e => { e.stopPropagation(); removeFavorite(fav.page, fav.queryId); }}
+                title="Remove"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
