@@ -3,6 +3,9 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const { runPowerShell } = require('../utils/powershell');
+const { withCache } = require('../utils/cache');
+
+const DASHBOARD_TTL = 15 * 60; // 15 minutes
 
 const SNAPSHOT_PATH = path.join(__dirname, '../data/dashboard-snapshot.json');
 
@@ -55,21 +58,26 @@ const computeTrends = (current, previous) => {
 
 router.get('/stats', async (req, res) => {
   try {
-    const previous = readSnapshot();
-    const result = await runPowerShell('Get-DashboardStats.ps1', { InactiveDays: 90 }, '');
-    const stats = result.data;
+    const cacheKey = 'dashboard:stats';
+    const payload = await withCache(cacheKey, DASHBOARD_TTL, async () => {
+      const previous = readSnapshot();
+      const result = await runPowerShell('Get-DashboardStats.ps1', { InactiveDays: 90 }, '');
+      const stats = result.data;
 
-    if (!stats || stats.Error) {
-      return res.status(500).json({ error: stats?.Error || 'Failed to fetch dashboard stats' });
-    }
+      if (!stats || stats.Error) {
+        throw new Error(stats?.Error || 'Failed to fetch dashboard stats');
+      }
 
-    const trends = computeTrends(stats, previous);
-    writeSnapshot(stats);
+      const trends = computeTrends(stats, previous);
+      writeSnapshot(stats);
 
-    res.json({
-      data: stats,
-      trends: Object.keys(trends).length > 0 ? trends : null
+      return {
+        data: stats,
+        trends: Object.keys(trends).length > 0 ? trends : null
+      };
     });
+
+    res.json(payload);
   } catch (error) {
     console.error('Dashboard stats error:', error);
     res.status(500).json({ error: error.message });

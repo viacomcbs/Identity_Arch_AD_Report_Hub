@@ -26,6 +26,7 @@ const ADSitesSubnets = () => {
     { id: 'subnets-detailed', label: 'Subnets Detailed', description: 'Subnets with DC count and metadata' },
     { id: 'sites-no-dc', label: 'Sites with No DC', description: 'AD Sites with no Domain Controller' },
     { id: 'unassigned-subnets', label: 'Unassigned Subnets', description: 'Subnets not associated with any AD Site' },
+    { id: 'replication-health', label: 'Replication Health', description: 'Per-DC replication partner status — highlights overdue (>24h) and failed replication links' },
   ];
 
   const handleQuery = async (queryId) => {
@@ -280,6 +281,63 @@ const ADSitesSubnets = () => {
     </table>
   );
 
+  const getReplicationStatusClass = (status) => {
+    switch (status) {
+      case 'Healthy': return 'enabled';
+      case 'Warning': return 'risk-medium';
+      case 'Overdue': return 'risk-high';
+      case 'Failed':  return 'disabled';
+      default:        return '';
+    }
+  };
+
+  const renderReplicationHealthTable = () => (
+    <table className="data-table">
+      <thead>
+        <tr>
+          <SortableHeader columnKey="Domain" label="Domain" />
+          <SortableHeader columnKey="DCName" label="DC Name" />
+          <SortableHeader columnKey="Site" label="DC Site" />
+          <SortableHeader columnKey="PartnerName" label="Partner DC" />
+          <SortableHeader columnKey="PartnerSite" label="Partner Site" />
+          <SortableHeader columnKey="Partition" label="Partition" />
+          <SortableHeader columnKey="ReplicationStatus" label="Status" />
+          <SortableHeader columnKey="HoursSinceLastSuccess" label="Hours Since Success" />
+          <SortableHeader columnKey="ConsecutiveFailures" label="Consecutive Failures" />
+          <SortableHeader columnKey="LastSuccess" label="Last Success" />
+          <SortableHeader columnKey="LastAttempt" label="Last Attempt" />
+          <SortableHeader columnKey="LastResultMessage" label="Last Result" />
+        </tr>
+      </thead>
+      <tbody>
+        {paginatedData.map((row, i) => (
+          <tr key={i} style={row.IsOverdue ? { backgroundColor: 'rgba(220, 38, 38, 0.04)' } : {}}>
+            <td>{row.Domain || '-'}</td>
+            <td>{row.DCName || '-'}</td>
+            <td>{row.Site || '-'}</td>
+            <td>{row.PartnerName || '-'}</td>
+            <td>{row.PartnerSite || '-'}</td>
+            <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{row.Partition || '-'}</td>
+            <td>
+              <span className={`status-badge ${getReplicationStatusClass(row.ReplicationStatus)}`}>
+                {row.ReplicationStatus || '-'}
+              </span>
+            </td>
+            <td style={{ fontWeight: row.HoursSinceLastSuccess > 24 ? 600 : 'normal', color: row.HoursSinceLastSuccess > 24 ? 'var(--error-text)' : 'inherit' }}>
+              {row.HoursSinceLastSuccess !== null && row.HoursSinceLastSuccess !== undefined ? `${row.HoursSinceLastSuccess}h` : '-'}
+            </td>
+            <td style={{ color: row.ConsecutiveFailures > 0 ? 'var(--error-text)' : 'inherit' }}>
+              {row.ConsecutiveFailures ?? '-'}
+            </td>
+            <td>{formatDate(row.LastSuccess)}</td>
+            <td>{formatDate(row.LastAttempt)}</td>
+            <td style={{ fontSize: '12px' }}>{row.LastResultCode === 0 ? 'Success' : (row.LastResultMessage || '-')}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
   const renderUnassignedSubnetsTable = () => (
     <table className="data-table">
       <thead>
@@ -319,6 +377,8 @@ const ADSitesSubnets = () => {
         return renderSitesNoDCTable();
       case 'unassigned-subnets':
         return renderUnassignedSubnetsTable();
+      case 'replication-health':
+        return renderReplicationHealthTable();
       default:
         return null;
     }
