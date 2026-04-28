@@ -6,14 +6,14 @@ const COLORS = {
   forest: '#16a34a',
   domain: '#2563eb',
   childDomain: '#3b82f6',
-  dc: '#7c3aed',
+  dc: '#0e7490',
   site: '#0891b2',
   fsmoForest: '#b45309',
   fsmoDomain: '#d97706',
   partition: '#6366f1',
   trustBidirectional: '#2563eb',
   trustInbound: '#ea580c',
-  trustOutbound: '#7c3aed',
+  trustOutbound: '#0e7490',
   trustDisabled: '#9ca3af',
   replicationOk: '#16a34a',
   replicationFail: '#dc2626',
@@ -593,7 +593,7 @@ const buildNamingContextsGraph = (data) => {
   });
 
   const typeColors = {
-    'Schema Partition': '#7c3aed',
+    'Schema Partition': '#0e7490',
     'Configuration Partition': '#b45309',
     'Domain Partition': COLORS.domain,
     'Application Partition': '#6366f1',
@@ -718,7 +718,7 @@ const TopologyDiagram = ({ data, activeQuery }) => {
         return (
           <>
             <div className="legend-item"><span className="legend-dot" style={{ backgroundColor: COLORS.forest }} /> Root</div>
-            <div className="legend-item"><span className="legend-dot" style={{ backgroundColor: '#7c3aed' }} /> Schema</div>
+            <div className="legend-item"><span className="legend-dot" style={{ backgroundColor: '#0e7490' }} /> Schema</div>
             <div className="legend-item"><span className="legend-dot" style={{ backgroundColor: '#b45309' }} /> Configuration</div>
             <div className="legend-item"><span className="legend-dot" style={{ backgroundColor: COLORS.domain }} /> Domain</div>
             <div className="legend-item"><span className="legend-dot" style={{ backgroundColor: '#6366f1' }} /> Application</div>
