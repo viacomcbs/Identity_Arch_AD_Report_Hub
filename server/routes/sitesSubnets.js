@@ -8,7 +8,8 @@ const predefinedQueries = {
   'subnets': 'Get-ADSubnets.ps1',
   'subnets-detailed': 'Get-ADSubnetsDetailed.ps1',
   'sites-no-dc': 'Get-SitesWithNoDC.ps1',
-  'unassigned-subnets': 'Get-UnassignedSubnets.ps1'
+  'unassigned-subnets': 'Get-UnassignedSubnets.ps1',
+  'replication-health': 'Get-ReplicationHealth.ps1'
 };
 
 // GET /api/sites-subnets - Run predefined query

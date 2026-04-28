@@ -2,6 +2,40 @@
   margin-bottom: 20px;
 }
 
+/* Risk-level badge modifiers used in Identity Governance tables */
+.status-badge.risk-high {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+.status-badge.risk-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+.status-badge.risk-low {
+  background-color: #d1fae5;
+  color: #065f46;
+  border-color: #6ee7b7;
+}
+.status-badge.risk-info {
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+[data-theme="dark"] .status-badge.risk-high {
+  background-color: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+[data-theme="dark"] .status-badge.risk-medium {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+[data-theme="dark"] .status-badge.risk-low {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+}
+
 /* Query Panel */
 .query-panel {
   margin-bottom: 20px;

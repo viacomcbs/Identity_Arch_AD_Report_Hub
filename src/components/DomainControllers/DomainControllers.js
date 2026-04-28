@@ -378,6 +378,16 @@ const DomainControllers = () => {
     }
   };
 
+  const getTrustRiskClass = (risk) => {
+    switch ((risk || '').toLowerCase()) {
+      case 'high':   return 'risk-high';
+      case 'medium': return 'risk-medium';
+      case 'low':    return 'risk-low';
+      case 'info':   return 'risk-info';
+      default:       return '';
+    }
+  };
+
   const renderTrustsTable = () => (
     <table className="data-table">
       <thead>
@@ -387,11 +397,14 @@ const DomainControllers = () => {
           <th>Target Domain</th>
           <th>Trust Type</th>
           <th>Direction</th>
+          <th>Security Risk</th>
           <th>Forest Transitive</th>
           <th>Intra-Forest</th>
           <th>Selective Auth</th>
           <th>SID Filtering</th>
           <th>Uses AES</th>
+          <th>Trust Age (Days)</th>
+          <th>Attributes</th>
           <th>Created</th>
           <th>Modified</th>
         </tr>
@@ -413,6 +426,11 @@ const DomainControllers = () => {
                 {trust.TrustDirection === 'Inbound' && '← '}
                 {trust.TrustDirection === 'Outbound' && '→ '}
                 {trust.TrustDirection}
+              </span>
+            </td>
+            <td>
+              <span className={`status-badge ${getTrustRiskClass(trust.SecurityRisk)}`}>
+                {trust.SecurityRisk || '-'}
               </span>
             </td>
             <td>
@@ -439,6 +457,10 @@ const DomainControllers = () => {
               <span className={`status-badge ${trust.UsesAESKeys ? 'enabled' : 'disabled'}`}>
                 {trust.UsesAESKeys ? 'Yes' : 'No'}
               </span>
+            </td>
+            <td>{trust.TrustAgeDays !== null && trust.TrustAgeDays !== undefined ? trust.TrustAgeDays : '-'}</td>
+            <td style={{ fontSize: '11px', color: 'var(--text-muted)', maxWidth: '240px', whiteSpace: 'normal' }}>
+              {trust.AttributesDecoded || '-'}
             </td>
             <td>{formatDate(trust.Created)}</td>
             <td>{formatDate(trust.Modified)}</td>

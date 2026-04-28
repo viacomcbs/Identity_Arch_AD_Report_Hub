@@ -3,6 +3,17 @@ const router = express.Router();
 const { runPowerShell } = require('../utils/powershell');
 const { getForestNameForDomain } = require('../utils/domainConfig');
 const { getPrivilegedGroupNamesForForest } = require('../utils/privilegedGroups');
+const { withCache } = require('../utils/cache');
+
+// Heavy compliance queries (Security log scans) cache for 1 hour
+const COMPLIANCE_TTL = 60 * 60;
+// Lighter read-only compliance queries cache for 15 minutes
+const COMPLIANCE_LIGHT_TTL = 15 * 60;
+
+const CACHEABLE_QUERIES = new Set([
+  'privileged-changes', 'privileged-membership-audit', 'stale-admins',
+  'pwd-never-expires-priv', 'kerberos-delegation', 'sid-history', 'adminsdholder'
+]);
 
 /** Allowed single-group filter values for privileged change/membership reports (canonical names as in AD). */
 const ALLOWED_PRIVILEGED_GROUP_FILTER_LIST = [
@@ -154,7 +165,20 @@ router.get('/', async (req, res) => {
       args.IncludeMemberDetails = true;
     }
 
-    const result = await runPowerShell(scriptName, args, 'compliance');
+    // Cache key encodes query type + domain + group filter so permutations
+    // never collide with each other.
+    const ttl = ['privileged-changes', 'privileged-membership-audit'].includes(queryType)
+      ? COMPLIANCE_TTL
+      : COMPLIANCE_LIGHT_TTL;
+
+    const cacheKey = CACHEABLE_QUERIES.has(queryType)
+      ? `compliance:${queryType}:${args.TargetDomain || ''}:${args.PrivilegedGroupsCsv || ''}:${args.Days || ''}`
+      : null;
+
+    const result = cacheKey
+      ? await withCache(cacheKey, ttl, () => runPowerShell(scriptName, args, 'compliance'))
+      : await runPowerShell(scriptName, args, 'compliance');
+
     res.json(result);
   } catch (error) {
     console.error('Compliance query error:', error);

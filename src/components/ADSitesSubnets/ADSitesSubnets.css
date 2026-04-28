@@ -5,6 +5,26 @@
   color: var(--text-primary);
 }
 
+/* Replication health status badge modifiers */
+.sites-page .status-badge.risk-high {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+.sites-page .status-badge.risk-medium {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fcd34d;
+}
+[data-theme="dark"] .sites-page .status-badge.risk-high {
+  background-color: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+[data-theme="dark"] .sites-page .status-badge.risk-medium {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
 .sites-page .query-cards {
   display: flex !important;
   flex-wrap: wrap !important;

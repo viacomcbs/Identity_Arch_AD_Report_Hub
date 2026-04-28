@@ -37,7 +37,12 @@ const predefinedQueries = {
   // Lifecycle queries
   'modified-x-days': 'Get-UsersModifiedLastXDays.ps1',
   'missing-manager': 'Get-UsersWithMissingManager.ps1',
-  'expiring-soon': 'Get-UsersExpiringSoon.ps1'
+  'expiring-soon': 'Get-UsersExpiringSoon.ps1',
+  // Identity governance queries
+  'passwd-not-required': 'Get-PasswordNotRequired.ps1',
+  'no-manager': 'Get-UsersNoManager.ps1',
+  'disabled-manager': 'Get-UsersDisabledManager.ps1',
+  'contractor-by-type': 'Get-ContractorsByEmployeeType.ps1'
 };
 
 // GET /api/users - Run predefined query
