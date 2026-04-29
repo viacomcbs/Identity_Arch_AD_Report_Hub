@@ -1,4 +1,4 @@
-# Get-AdminSDHolderProtected.ps1
+﻿# Get-AdminSDHolderProtected.ps1
 # Finds accounts protected by AdminSDHolder (adminCount=1)
 param(
     [string]$ForestDomain = "",
@@ -8,6 +8,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     # Avoid warning noise corrupting JSON output
     $WarningPreference = 'SilentlyContinue'
@@ -15,9 +16,9 @@ try {
     $forest = $null
     try {
         if ($ForestDomain) {
-            $forest = Get-ADForest -Server $ForestDomain
+            $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null
@@ -31,14 +32,14 @@ try {
             # Prefer querying the PDC emulator for consistent results
             $dc = $null
             try {
-                $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop
+                $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop @credParam
                 $dc = $domainInfo.PDCEmulator
             } catch {
-                $dc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName
+                $dc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName @credParam
             }
 
             # Find users with adminCount=1
-            $protectedUsers = Get-ADUser -Filter { adminCount -eq 1 } -Server $dc -Properties adminCount, DisplayName, SamAccountName, Enabled, LastLogonDate, PasswordLastSet, MemberOf, WhenCreated -ErrorAction SilentlyContinue
+            $protectedUsers = Get-ADUser -Filter { adminCount -eq 1 } -Server $dc -Properties adminCount, DisplayName, SamAccountName, Enabled, LastLogonDate, PasswordLastSet, MemberOf, WhenCreated -ErrorAction SilentlyContinue @credParam
 
             foreach ($user in $protectedUsers) {
                 # Check if user is actually in a privileged group

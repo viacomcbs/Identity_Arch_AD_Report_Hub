@@ -1,4 +1,4 @@
-# Get-OUTree.ps1
+﻿# Get-OUTree.ps1
 # Returns hierarchical OU data with Children arrays, child object counts, and linked GPOs
 param(
     [string]$Domain = ""
@@ -6,10 +6,11 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     if ($Domain) {
-        $dc = (Get-ADDomainController -DomainName $Domain -Discover -ErrorAction Stop).HostName[0]
-        $domainDN = (Get-ADDomain -Server $dc).DistinguishedName
+        $dc = (Get-ADDomainController -DomainName $Domain -Discover -ErrorAction Stop).HostName[0] @credParam
+        $domainDN = (Get-ADDomain -Server $dc).DistinguishedName @credParam
     } else {
         $dc = $null
         $domainDN = (Get-ADDomain).DistinguishedName
@@ -19,7 +20,7 @@ try {
     if ($dc) { $getADParams.Server = $dc }
 
     # Get all OUs
-    $allOUs = Get-ADOrganizationalUnit -Filter * -Properties Name, Description, DistinguishedName, gPLink, ProtectedFromAccidentalDeletion @getADParams
+    $allOUs = Get-ADOrganizationalUnit -Filter * -Properties Name, Description, DistinguishedName, gPLink, ProtectedFromAccidentalDeletion @getADParams @credParam
 
     # Build a lookup table by DN
     $ouLookup = @{}
@@ -43,7 +44,7 @@ try {
             foreach ($match in $matches) {
                 $gpoGuid = $match.Groups[1].Value
                 try {
-                    $gpo = Get-ADObject -Filter "objectClass -eq 'groupPolicyContainer' -and Name -eq '{$gpoGuid}'" -Properties displayName @getADParams
+                    $gpo = Get-ADObject -Filter "objectClass -eq 'groupPolicyContainer' -and Name -eq '{$gpoGuid}'" -Properties displayName @getADParams @credParam
                     if ($gpo) {
                         $ouLookup[$ou.DistinguishedName].GPOLinks += $gpo.displayName
                     } else {
@@ -60,9 +61,9 @@ try {
     foreach ($ou in $allOUs) {
         $dn = $ou.DistinguishedName
         try {
-            $ouLookup[$dn].UserCount = @(Get-ADUser -SearchBase $dn -SearchScope OneLevel -Filter * @getADParams).Count
-            $ouLookup[$dn].GroupCount = @(Get-ADGroup -SearchBase $dn -SearchScope OneLevel -Filter * @getADParams).Count
-            $ouLookup[$dn].ComputerCount = @(Get-ADComputer -SearchBase $dn -SearchScope OneLevel -Filter * @getADParams).Count
+            $ouLookup[$dn].UserCount = @(Get-ADUser -SearchBase $dn -SearchScope OneLevel -Filter * @getADParams).Count @credParam
+            $ouLookup[$dn].GroupCount = @(Get-ADGroup -SearchBase $dn -SearchScope OneLevel -Filter * @getADParams).Count @credParam
+            $ouLookup[$dn].ComputerCount = @(Get-ADComputer -SearchBase $dn -SearchScope OneLevel -Filter * @getADParams).Count @credParam
         } catch {
             # Skip count errors
         }

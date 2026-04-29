@@ -1,23 +1,24 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     # LDAP Filter: EA6 contains "Service Account" OR EmployeeID contains "SVC" OR EmployeeNumber contains "SVC"
     $LdapFilter = "(|(extensionAttribute6=*Service Account*)(employeeID=*SVC*)(employeeNumber=*SVC*))"
 
     # Fetch all service accounts (no limit)
-    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server $TargetDomain -Properties `
+    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server $TargetDomain -Properties ` @credParam
         extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager
 
     $Results = foreach ($User in $Users) {
         $ManagerName = $null
         if ($User.Manager) {
             try {
-                $ManagerName = (Get-ADUser -Identity $User.Manager -Server $TargetDomain).Name
+                $ManagerName = (Get-ADUser -Identity $User.Manager -Server $TargetDomain).Name @credParam
             } catch {
                 $ManagerName = "Unable to resolve"
             }

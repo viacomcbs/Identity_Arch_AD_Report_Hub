@@ -7,14 +7,15 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
     
     # Get ALL DCs from the entire forest
-    $rootDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADForest @serverParam).RootDomain }
+    $rootDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADForest @serverParam @credParam).RootDomain }
     $GlobalDCList = Get-ADDomainController -Filter * -Server $rootDomain
 
     # Get all AD Subnets (no limit - fetch all)
-    $Subnets = Get-ADReplicationSubnet -Filter * -Properties Site, Description, Location @serverParam
+    $Subnets = Get-ADReplicationSubnet -Filter * -Properties Site, Description, Location @serverParam @credParam
 
     $Results = foreach ($Subnet in $Subnets) {
         $SiteName = if ($Subnet.Site) { 

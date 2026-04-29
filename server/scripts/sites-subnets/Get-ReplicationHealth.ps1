@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
@@ -40,10 +40,11 @@ function Get-ReplicationErrorMessage {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $WarningPreference = 'SilentlyContinue'
 
     $anchorDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADDomain).DNSRoot }
-    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop
+    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop @credParam
     $domainsToQuery = if ($TargetDomain) { @($TargetDomain) } else { @($forest.Domains) }
 
     $Results = New-Object System.Collections.Generic.List[PSObject]
@@ -51,11 +52,11 @@ try {
 
     foreach ($domain in $domainsToQuery) {
         try {
-            $DCs = Get-ADDomainController -Filter * -Server $domain -ErrorAction SilentlyContinue
+            $DCs = Get-ADDomainController -Filter * -Server $domain -ErrorAction SilentlyContinue @credParam
 
             foreach ($DC in @($DCs)) {
                 try {
-                    $Partners = Get-ADReplicationPartnerMetadata -Target $DC.HostName `
+                    $Partners = Get-ADReplicationPartnerMetadata -Target $DC.HostName ` @credParam
                         -ErrorAction SilentlyContinue
 
                     foreach ($Partner in @($Partners)) {

@@ -7,20 +7,27 @@ function readDomainsConfig() {
   return JSON.parse(raw);
 }
 
-function getDomainEntry(domainName) {
+// Returns the forest object whose root matches or is an ancestor of domainName
+function getForestForDomain(domainName) {
   if (!domainName) return null;
   const cfg = readDomainsConfig();
-  const domains = cfg?.domains || [];
-  return domains.find((d) => String(d.name).toLowerCase() === String(domainName).toLowerCase()) || null;
+  const forests = cfg?.forests || [];
+  const normalized = domainName.toLowerCase().trim();
+  for (const forest of forests) {
+    const root = forest.root.toLowerCase();
+    if (normalized === root || normalized.endsWith('.' + root)) {
+      return forest;
+    }
+  }
+  return null;
 }
 
 function getForestNameForDomain(domainName) {
-  return getDomainEntry(domainName)?.forest || null;
+  return getForestForDomain(domainName)?.id || null;
 }
 
 module.exports = {
   readDomainsConfig,
-  getDomainEntry,
+  getForestForDomain,
   getForestNameForDomain,
 };
-

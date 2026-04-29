@@ -1,4 +1,4 @@
-# Get-StaleAdminAccounts.ps1
+﻿# Get-StaleAdminAccounts.ps1
 # Finds privileged users who haven't logged on in X days
 param(
     [int]$Days = 90,
@@ -9,6 +9,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     # Avoid warning noise corrupting JSON output
     $WarningPreference = 'SilentlyContinue'
@@ -17,9 +18,9 @@ try {
     $forest = $null
     try {
         if ($ForestDomain) {
-            $forest = Get-ADForest -Server $ForestDomain
+            $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null
@@ -43,20 +44,20 @@ try {
         try {
             $dc = $null
             try {
-                $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop
+                $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop @credParam
                 $dc = $domainInfo.PDCEmulator
             } catch {
-                $dc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName
+                $dc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName @credParam
             }
 
             foreach ($groupName in $privilegedGroups) {
                 try {
-                    $members = Get-ADGroupMember -Identity $groupName -Server $dc -Recursive -ErrorAction SilentlyContinue |
+                    $members = Get-ADGroupMember -Identity $groupName -Server $dc -Recursive -ErrorAction SilentlyContinue @credParam |
                         Where-Object { $_.objectClass -eq 'user' }
 
                     foreach ($member in $members) {
                         try {
-                            $user = Get-ADUser -Identity $member.SamAccountName -Server $dc -Properties LastLogonDate, Enabled, PasswordLastSet, WhenCreated, DisplayName -ErrorAction SilentlyContinue
+                            $user = Get-ADUser -Identity $member.SamAccountName -Server $dc -Properties LastLogonDate, Enabled, PasswordLastSet, WhenCreated, DisplayName -ErrorAction SilentlyContinue @credParam
 
                             $isStale = $false
                             if (-not $user.LastLogonDate) {

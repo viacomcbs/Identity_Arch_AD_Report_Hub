@@ -39,6 +39,7 @@ catch {
 }
 
 $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 if ($ForestDomain)  { $serverParam['Server'] = $ForestDomain }
 elseif ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
 
@@ -46,7 +47,7 @@ $MatrixResults = New-Object System.Collections.Generic.List[PSObject]
 
 try {
     $Forest = $null
-    try { $Forest = Get-ADForest @serverParam -ErrorAction Stop } catch { $Forest = $null }
+    try { $Forest = Get-ADForest @serverParam @credParam -ErrorAction Stop } catch { $Forest = $null }
 
     $AllDomains = if ($TargetDomain) { @($TargetDomain) }
                   elseif ($Forest -and $Forest.Domains) { $Forest.Domains }

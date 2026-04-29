@@ -1,14 +1,15 @@
-param(
+﻿param(
     [int]$Days = 30
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $CutoffDate = (Get-Date).AddDays(-$Days)
     
     # Fetch all computers created in last X days (no limit)
-    $Computers = Get-ADComputer -Filter { WhenCreated -ge $CutoffDate } -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated |
+    $Computers = Get-ADComputer -Filter { WhenCreated -ge $CutoffDate } -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated @credParam |
                  Sort-Object WhenCreated -Descending
     
     $Results = foreach ($Computer in $Computers) {

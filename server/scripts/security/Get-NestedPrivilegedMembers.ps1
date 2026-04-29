@@ -17,10 +17,11 @@ function Get-NestedGroupMembers {
     $Visited[$GroupDN] = $true
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($Server) { $serverParam.Server = $Server }
     
     try {
-        $members = Get-ADGroupMember -Identity $GroupDN @serverParam -ErrorAction SilentlyContinue
+        $members = Get-ADGroupMember -Identity $GroupDN @serverParam @credParam -ErrorAction SilentlyContinue
         
         foreach ($member in $members) {
             $currentPath = if ($Path) { "$Path -> $($member.Name)" } else { $member.Name }
@@ -29,7 +30,7 @@ function Get-NestedGroupMembers {
                 $results += Get-NestedGroupMembers -GroupDN $member.distinguishedName -RootGroup $RootGroup -Path $currentPath -Visited $Visited -Server $Server
             }
             elseif ($member.objectClass -eq 'user') {
-                $user = Get-ADUser -Identity $member.distinguishedName @serverParam -Properties DisplayName, mail, Enabled, LastLogonDate, Title, Department
+                $user = Get-ADUser -Identity $member.distinguishedName @serverParam @credParam -Properties DisplayName, mail, Enabled, LastLogonDate, Title, Department
                 $results += [PSCustomObject]@{
                     PrivilegedGroup   = $RootGroup
                     MemberName        = $user.DisplayName

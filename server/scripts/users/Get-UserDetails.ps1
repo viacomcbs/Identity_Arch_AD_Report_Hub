@@ -1,12 +1,13 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$SamAccountName
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
-    $User = Get-ADUser -Identity $SamAccountName -Properties *
+    $User = Get-ADUser -Identity $SamAccountName -Properties * @credParam
     
     if ($null -eq $User) {
         @{ Error = "User not found" } | ConvertTo-Json
@@ -16,7 +17,7 @@ try {
     $Groups = @($User.MemberOf | ForEach-Object { 
         $GroupDN = $_
         try {
-            $Group = Get-ADGroup -Identity $GroupDN -Properties GroupCategory, GroupScope, mail
+            $Group = Get-ADGroup -Identity $GroupDN -Properties GroupCategory, GroupScope, mail @credParam
             [PSCustomObject]@{
                 Name = $Group.Name
                 Type = $Group.GroupCategory

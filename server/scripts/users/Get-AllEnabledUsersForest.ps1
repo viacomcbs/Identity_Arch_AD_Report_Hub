@@ -1,10 +1,11 @@
-param(
+﻿param(
     [int]$Limit = 0,
     [string]$TargetDomain = ""
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $WarningPreference = 'SilentlyContinue'
     $ErrorActionPreference = 'SilentlyContinue'
@@ -19,9 +20,9 @@ try {
     $forest = $null
     try {
         if ($TargetDomain) {
-            $forest = Get-ADForest -Server $TargetDomain -ErrorAction Stop
+            $forest = Get-ADForest -Server $TargetDomain -ErrorAction Stop @credParam
         } else {
-            $forest = Get-ADForest -ErrorAction Stop
+            $forest = Get-ADForest -ErrorAction Stop @credParam
         }
     } catch {
         $forest = $null
@@ -37,7 +38,7 @@ try {
 
     foreach ($Domain in $ForestDomains) {
         try {
-            $Users = Get-ADUser -Filter 'Enabled -eq $true' -Server $Domain `
+            $Users = Get-ADUser -Filter 'Enabled -eq $true' -Server $Domain ` @credParam
               -ResultPageSize 2000 -ResultSetSize $null `
               -Properties `
                 GivenName, Surname, DisplayName, Title, UserPrincipalName, SamAccountName, `

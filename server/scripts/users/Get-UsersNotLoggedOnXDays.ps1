@@ -1,14 +1,15 @@
-param(
+﻿param(
     [int]$Days = 60
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $CutoffDate = (Get-Date).AddDays(-$Days)
     
     # Fetch all users not logged on in X days (no limit)
-    $Users = Get-ADUser -Filter { LastLogonDate -lt $CutoffDate -and Enabled -eq $true } -Properties DisplayName, EmailAddress, Department, Title, LastLogonDate, WhenCreated |
+    $Users = Get-ADUser -Filter { LastLogonDate -lt $CutoffDate -and Enabled -eq $true } -Properties DisplayName, EmailAddress, Department, Title, LastLogonDate, WhenCreated @credParam |
              Sort-Object LastLogonDate
     
     $Results = foreach ($User in $Users) {

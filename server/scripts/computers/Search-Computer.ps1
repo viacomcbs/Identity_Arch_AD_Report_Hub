@@ -1,15 +1,16 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$SearchValue
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $WildcardSearch = "*$($SearchValue.Trim('*'))*"
     
     # Search computers (no limit)
-    $Computers = Get-ADComputer -Filter "Name -like '$WildcardSearch'" -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated, Description, IPv4Address
+    $Computers = Get-ADComputer -Filter "Name -like '$WildcardSearch'" -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated, Description, IPv4Address @credParam
     
     $Results = foreach ($Computer in $Computers) {
         [PSCustomObject]@{

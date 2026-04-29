@@ -1,12 +1,13 @@
-try {
+﻿try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
-    $forest = Get-ADForest
+    $forest = Get-ADForest @credParam
     $results = @()
 
     foreach ($gcServer in $forest.GlobalCatalogs) {
         try {
-            $dc = Get-ADDomainController -Identity $gcServer -ErrorAction SilentlyContinue
+            $dc = Get-ADDomainController -Identity $gcServer -ErrorAction SilentlyContinue @credParam
             
             $results += [PSCustomObject]@{
                 ServerName = $dc.HostName

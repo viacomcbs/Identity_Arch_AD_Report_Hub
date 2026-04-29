@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$ForestDomain = "",
     [string]$TargetDomain = ""
 )
@@ -7,6 +7,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 } catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
     exit 1
@@ -16,7 +17,7 @@ try {
     $domainToQuery = if ($TargetDomain) { $TargetDomain } elseif ($ForestDomain) { $ForestDomain } else { $null }
 
     # Domain FSMO roles
-    $domainObj = if ($domainToQuery) { Get-ADDomain -Server $domainToQuery -ErrorAction Stop } else { Get-ADDomain -ErrorAction Stop }
+    $domainObj = if ($domainToQuery) { Get-ADDomain -Server $domainToQuery -ErrorAction Stop } else { Get-ADDomain -ErrorAction Stop } @credParam
     $domainName = $domainObj.DNSRoot
 
     $results = @(
@@ -28,7 +29,7 @@ try {
     # Forest FSMO roles (best-effort; may fail in trusted forest scenarios)
     try {
         $forestAnchor = if ($ForestDomain) { $ForestDomain } elseif ($domainToQuery) { $domainToQuery } else { $null }
-        $forestObj = if ($forestAnchor) { Get-ADForest -Server $forestAnchor -ErrorAction Stop } else { Get-ADForest -ErrorAction Stop }
+        $forestObj = if ($forestAnchor) { Get-ADForest -Server $forestAnchor -ErrorAction Stop } else { Get-ADForest -ErrorAction Stop } @credParam
 
         $results += [PSCustomObject]@{ Role = "Schema Master";        Holder = $forestObj.SchemaMaster;        Domain = $forestObj.RootDomain; Scope = "Forest" }
         $results += [PSCustomObject]@{ Role = "Domain Naming Master"; Holder = $forestObj.DomainNamingMaster;  Domain = $forestObj.RootDomain; Scope = "Forest" }

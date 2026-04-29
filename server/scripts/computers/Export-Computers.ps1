@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Filter = "all",
     [string]$Format = "json",
     [int]$Limit = 1000
@@ -6,6 +6,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $ADFilter = switch ($Filter) {
         "enabled"  { { Enabled -eq $true } }
@@ -15,7 +16,7 @@ try {
         default    { "*" }
     }
     
-    $Computers = Get-ADComputer -Filter $ADFilter -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated, WhenChanged, Description, IPv4Address |
+    $Computers = Get-ADComputer -Filter $ADFilter -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated, WhenChanged, Description, IPv4Address @credParam |
                  Select-Object -First $Limit
     
     $Results = foreach ($Computer in $Computers) {

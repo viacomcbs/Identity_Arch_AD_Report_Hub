@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Identifies an Active Directory object by its ObjectGUID or SID.
 
@@ -36,6 +36,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $ErrorActionPreference = 'Stop'
 
     $inputVal = $Identity.Trim()
@@ -68,7 +69,7 @@ try {
         $params['Properties'] = 'WhenCreated', 'WhenChanged', 'ObjectSid'
     }
 
-    $obj = Get-ADObject @params
+    $obj = Get-ADObject @params @credParam
 
     if (-not $obj) {
         @{ Found = $false; Error = "No object found: $Identity" } | ConvertTo-Json

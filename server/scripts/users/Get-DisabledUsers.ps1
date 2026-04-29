@@ -1,10 +1,11 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all disabled users (no limit)
-    $Users = Get-ADUser -Filter { Enabled -eq $false } -Properties DisplayName, EmailAddress, Department, Title, WhenCreated, WhenChanged
+    $Users = Get-ADUser -Filter { Enabled -eq $false } -Properties DisplayName, EmailAddress, Department, Title, WhenCreated, WhenChanged @credParam
     
     $Results = foreach ($User in $Users) {
         [PSCustomObject]@{

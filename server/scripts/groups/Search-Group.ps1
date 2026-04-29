@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$SearchValue,
 
@@ -8,6 +8,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $ServerArgs = @{}
     if ($TargetDomain -and $TargetDomain.Trim() -ne "") {
@@ -19,7 +20,7 @@ try {
     $Filter = "Name -like '$WildcardSearch' -or DisplayName -like '$WildcardSearch' -or mail -like '$WildcardSearch'"
     
     # Search groups (no limit)
-    $Groups = Get-ADGroup @ServerArgs -Filter $Filter -Properties DisplayName, mail, Description, GroupCategory, GroupScope, ManagedBy, WhenCreated, WhenChanged, member
+    $Groups = Get-ADGroup @ServerArgs -Filter $Filter -Properties DisplayName, mail, Description, GroupCategory, GroupScope, ManagedBy, WhenCreated, WhenChanged, member @credParam
     
     if ($null -eq $Groups -or @($Groups).Count -eq 0) {
         @() | ConvertTo-Json

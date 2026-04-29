@@ -1,10 +1,11 @@
-try {
+﻿try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     $results = @()
 
     # Get all replication site links first
-    $siteLinks = Get-ADReplicationSiteLink -Filter * -Properties * -ErrorAction SilentlyContinue
+    $siteLinks = Get-ADReplicationSiteLink -Filter * -Properties * -ErrorAction SilentlyContinue @credParam
 
     foreach ($link in $siteLinks) {
         $sites = @($link.SiteList) | ForEach-Object {
@@ -37,7 +38,7 @@ try {
 
     # Also try to get intrasite connections
     try {
-        $connections = Get-ADReplicationConnection -Filter * -ErrorAction SilentlyContinue
+        $connections = Get-ADReplicationConnection -Filter * -ErrorAction SilentlyContinue @credParam
         
         foreach ($conn in $connections) {
             $sourceName = $conn.ReplicateFromDirectoryServer -replace "CN=NTDS Settings,CN=", "" -replace ",CN=.*", ""

@@ -1,14 +1,15 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     if ($TargetDomain) {
-        $forest = Get-ADForest -Server $TargetDomain
+        $forest = Get-ADForest -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest
+        $forest = Get-ADForest @credParam
     }
     $results = @()
 
@@ -30,7 +31,7 @@ try {
     # Domain-specific FSMO roles
     foreach ($domainName in $forest.Domains) {
         try {
-            $domain = Get-ADDomain -Identity $domainName -ErrorAction SilentlyContinue
+            $domain = Get-ADDomain -Identity $domainName -ErrorAction SilentlyContinue @credParam
 
             $results += [PSCustomObject]@{
                 Role = "PDC Emulator"

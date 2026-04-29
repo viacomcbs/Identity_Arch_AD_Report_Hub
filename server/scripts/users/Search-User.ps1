@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$SearchValue,
     [string]$SearchType = "wildcard"
@@ -6,6 +6,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $WildcardSearch = if ($SearchType -eq "exact") { $SearchValue } else { "*$($SearchValue.Trim('*'))*" }
     
@@ -20,7 +21,7 @@ try {
         $Filter = "Name -like '$WildcardSearch' -or DisplayName -like '$WildcardSearch' -or mail -like '$WildcardSearch' -or SamAccountName -like '$WildcardSearch' -or employeeID -like '$WildcardSearch'"
     }
     
-    $ADUsers = Get-ADUser -Filter $Filter -Server "$($GlobalCatalog):3268" -Properties `
+    $ADUsers = Get-ADUser -Filter $Filter -Server "$($GlobalCatalog):3268" -Properties ` @credParam
         DisplayName, EmailAddress, employeeID, employeeNumber, Title, Department, `
         telephoneNumber, mobile, proxyAddresses, MemberOf, Enabled, Manager, `
         DistinguishedName, UserPrincipalName, WhenCreated, WhenChanged, LastLogonDate

@@ -1,12 +1,13 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
-    $Users = Get-ADUser -Filter 'Enabled -eq $true' -Server $TargetDomain -Properties EmployeeType, extensionAttribute6, Title, Department
+    $Users = Get-ADUser -Filter 'Enabled -eq $true' -Server $TargetDomain -Properties EmployeeType, extensionAttribute6, Title, Department @credParam
 
     # Process results for summary
     $Results = $Users | Select-Object `

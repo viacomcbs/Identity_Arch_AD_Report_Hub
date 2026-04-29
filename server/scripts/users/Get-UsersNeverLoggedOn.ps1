@@ -1,10 +1,11 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all users who never logged on (no limit)
-    $Users = Get-ADUser -Filter { LastLogonDate -notlike "*" -and Enabled -eq $true } -Properties DisplayName, EmailAddress, Department, Title, WhenCreated
+    $Users = Get-ADUser -Filter { LastLogonDate -notlike "*" -and Enabled -eq $true } -Properties DisplayName, EmailAddress, Department, Title, WhenCreated @credParam
     
     $Results = foreach ($User in $Users) {
         [PSCustomObject]@{

@@ -1,13 +1,14 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $WarningPreference = 'SilentlyContinue'
 
     $anchorDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADDomain).DNSRoot }
-    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop
+    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop @credParam
     $domainsToQuery = @($forest.Domains)
 
     $Results = New-Object System.Collections.Generic.List[PSObject]
@@ -15,7 +16,7 @@ try {
     foreach ($domain in $domainsToQuery) {
         try {
             # Users with unconstrained delegation
-            $Users = Get-ADUser -Filter 'TrustedForDelegation -eq $true' -Server $domain -Properties `
+            $Users = Get-ADUser -Filter 'TrustedForDelegation -eq $true' -Server $domain -Properties ` @credParam
                 DisplayName, SamAccountName, mail, Enabled, TrustedForDelegation, `
                 servicePrincipalName, WhenCreated, LastLogonDate, DistinguishedName -ErrorAction SilentlyContinue
 
@@ -37,7 +38,7 @@ try {
             }
 
             # Computers with unconstrained delegation (excluding DCs)
-            $Computers = Get-ADComputer -Filter 'TrustedForDelegation -eq $true' -Server $domain -Properties `
+            $Computers = Get-ADComputer -Filter 'TrustedForDelegation -eq $true' -Server $domain -Properties ` @credParam
                 Name, DNSHostName, Enabled, TrustedForDelegation, OperatingSystem, `
                 servicePrincipalName, WhenCreated, LastLogonDate, DistinguishedName, PrimaryGroupID -ErrorAction SilentlyContinue
 

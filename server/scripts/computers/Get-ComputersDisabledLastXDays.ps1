@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$false)]
     [int]$Days = 30
 )
@@ -7,6 +7,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -16,13 +17,13 @@ catch {
 $Results = @()
 
 try {
-    $Forest = Get-ADForest -ErrorAction Stop
+    $Forest = Get-ADForest -ErrorAction Stop @credParam
     $CutoffDate = (Get-Date).AddDays(-$Days)
     
     foreach ($DomainName in $Forest.Domains) {
         try {
             # Get disabled computers that were modified recently (likely disabled date)
-            $Computers = Get-ADComputer -Filter { Enabled -eq $false -and Modified -ge $CutoffDate } -Server $DomainName -Properties `
+            $Computers = Get-ADComputer -Filter { Enabled -eq $false -and Modified -ge $CutoffDate } -Server $DomainName -Properties ` @credParam
                 Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, `
                 Description, DNSHostName, Enabled, DistinguishedName -ErrorAction SilentlyContinue
             

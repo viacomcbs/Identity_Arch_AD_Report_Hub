@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -7,6 +7,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -15,7 +16,7 @@ catch {
 
 try {
     # Get all printer objects from the specified domain
-    $Printers = Get-ADObject -Filter { objectClass -eq 'printQueue' } `
+    $Printers = Get-ADObject -Filter { objectClass -eq 'printQueue' } ` @credParam
         -Server $TargetDomain `
         -Properties printColor, printDuplexSupported, serverName, location, printerName, uNCName, portName, driverName, printShareName `
         -ErrorAction Stop

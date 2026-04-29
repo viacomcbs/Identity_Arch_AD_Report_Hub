@@ -1,9 +1,10 @@
-param()
+﻿param()
 
 $ErrorActionPreference = 'SilentlyContinue'
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -13,11 +14,11 @@ catch {
 $Results = @()
 
 try {
-    $Forest = Get-ADForest -ErrorAction Stop
+    $Forest = Get-ADForest -ErrorAction Stop @credParam
     
     foreach ($DomainName in $Forest.Domains) {
         try {
-            $Computers = Get-ADComputer -Filter { Enabled -eq $false } -Server $DomainName -Properties `
+            $Computers = Get-ADComputer -Filter { Enabled -eq $false } -Server $DomainName -Properties ` @credParam
                 Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, `
                 Description, DNSHostName, Enabled, DistinguishedName -ErrorAction SilentlyContinue
             

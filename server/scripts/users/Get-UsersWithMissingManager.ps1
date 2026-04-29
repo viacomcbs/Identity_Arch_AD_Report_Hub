@@ -6,12 +6,13 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) {
         $serverParam.Server = $TargetDomain
     }
     
     # Find enabled users with no manager set
-    $Users = Get-ADUser -Filter 'Enabled -eq $true -and Manager -notlike "*"' @serverParam -Properties `
+    $Users = Get-ADUser -Filter 'Enabled -eq $true -and Manager -notlike "*"' @serverParam @credParam -Properties `
         DisplayName, SamAccountName, mail, Title, Department, Enabled, `
         WhenCreated, LastLogonDate, EmployeeType, extensionAttribute6, `
         DistinguishedName

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$SearchValue,
     [string]$ObjectTypes = "user,computer,group",
@@ -8,6 +8,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $WildcardSearch = "*$($SearchValue.Trim('*'))*"
     $Types = $ObjectTypes.Split(',').Trim()
@@ -37,7 +38,7 @@ try {
     # Search Users
     if ($Types -contains "user") {
         $Filter = "Name -like '$WildcardSearch' -or DisplayName -like '$WildcardSearch' -or mail -like '$WildcardSearch' -or SamAccountName -like '$WildcardSearch'"
-        $AllUsers = @(Get-ADUser -Filter $Filter -Properties DisplayName, mail, Department, Enabled)
+        $AllUsers = @(Get-ADUser -Filter $Filter -Properties DisplayName, mail, Department, Enabled) @credParam
         $Results.Pagination.TotalUsers = $AllUsers.Count
         
         $PagedUsers = $AllUsers | Select-Object -Skip $Skip -First $PageSize
@@ -56,7 +57,7 @@ try {
     # Search Computers
     if ($Types -contains "computer") {
         $Filter = "Name -like '$WildcardSearch'"
-        $AllComputers = @(Get-ADComputer -Filter $Filter -Properties OperatingSystem, Enabled)
+        $AllComputers = @(Get-ADComputer -Filter $Filter -Properties OperatingSystem, Enabled) @credParam
         $Results.Pagination.TotalComputers = $AllComputers.Count
         
         $PagedComputers = $AllComputers | Select-Object -Skip $Skip -First $PageSize
@@ -73,7 +74,7 @@ try {
     # Search Groups
     if ($Types -contains "group") {
         $Filter = "Name -like '$WildcardSearch' -or DisplayName -like '$WildcardSearch'"
-        $AllGroups = @(Get-ADGroup -Filter $Filter -Properties GroupCategory, mail)
+        $AllGroups = @(Get-ADGroup -Filter $Filter -Properties GroupCategory, mail) @credParam
         $Results.Pagination.TotalGroups = $AllGroups.Count
         
         $PagedGroups = $AllGroups | Select-Object -Skip $Skip -First $PageSize
@@ -91,7 +92,7 @@ try {
     if ($Types -contains "contact") {
         $Filter = "(objectClass=contact)(|(name=$WildcardSearch)(displayName=$WildcardSearch)(mail=$WildcardSearch))"
         $LdapFilter = "(&$Filter)"
-        $AllContacts = @(Get-ADObject -LDAPFilter $LdapFilter -Properties DisplayName, mail, company, department, telephoneNumber -ErrorAction SilentlyContinue)
+        $AllContacts = @(Get-ADObject -LDAPFilter $LdapFilter -Properties DisplayName, mail, company, department, telephoneNumber -ErrorAction SilentlyContinue) @credParam
         $Results.Pagination.TotalContacts = $AllContacts.Count
         
         $PagedContacts = $AllContacts | Select-Object -Skip $Skip -First $PageSize
@@ -109,7 +110,7 @@ try {
     # Search Printers
     if ($Types -contains "printer") {
         $LdapFilter = "(&(objectClass=printQueue)(|(name=$WildcardSearch)(serverName=$WildcardSearch)(location=$WildcardSearch)))"
-        $AllPrinters = @(Get-ADObject -LDAPFilter $LdapFilter -Properties serverName, location, description -ErrorAction SilentlyContinue)
+        $AllPrinters = @(Get-ADObject -LDAPFilter $LdapFilter -Properties serverName, location, description -ErrorAction SilentlyContinue) @credParam
         $Results.Pagination.TotalPrinters = $AllPrinters.Count
         
         $PagedPrinters = $AllPrinters | Select-Object -Skip $Skip -First $PageSize
@@ -126,7 +127,7 @@ try {
     # Search OUs
     if ($Types -contains "ou") {
         $LdapFilter = "(&(objectClass=organizationalUnit)(|(name=$WildcardSearch)(description=$WildcardSearch)))"
-        $AllOUs = @(Get-ADObject -LDAPFilter $LdapFilter -Properties description -ErrorAction SilentlyContinue)
+        $AllOUs = @(Get-ADObject -LDAPFilter $LdapFilter -Properties description -ErrorAction SilentlyContinue) @credParam
         $Results.Pagination.TotalOUs = $AllOUs.Count
         
         $PagedOUs = $AllOUs | Select-Object -Skip $Skip -First $PageSize
@@ -143,7 +144,7 @@ try {
     # Search GPOs
     if ($Types -contains "gpo") {
         $LdapFilter = "(&(objectClass=groupPolicyContainer)(|(displayName=$WildcardSearch)(name=$WildcardSearch)))"
-        $AllGPOs = @(Get-ADObject -LDAPFilter $LdapFilter -Properties displayName, gPCFileSysPath, whenCreated -ErrorAction SilentlyContinue)
+        $AllGPOs = @(Get-ADObject -LDAPFilter $LdapFilter -Properties displayName, gPCFileSysPath, whenCreated -ErrorAction SilentlyContinue) @credParam
         $Results.Pagination.TotalGPOs = $AllGPOs.Count
         
         $PagedGPOs = $AllGPOs | Select-Object -Skip $Skip -First $PageSize

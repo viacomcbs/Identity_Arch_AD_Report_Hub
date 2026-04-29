@@ -7,13 +7,14 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) {
         $serverParam.Server = $TargetDomain
     }
     
     $cutoffDate = (Get-Date).AddDays(-$Days)
     
-    $Users = Get-ADUser -Filter "WhenChanged -ge '$cutoffDate'" @serverParam -Properties `
+    $Users = Get-ADUser -Filter "WhenChanged -ge '$cutoffDate'" @serverParam @credParam -Properties `
         DisplayName, SamAccountName, mail, Title, Department, Enabled, `
         WhenCreated, WhenChanged, LastLogonDate, PasswordLastSet, `
         Manager, DistinguishedName
@@ -22,7 +23,7 @@ try {
         $managerName = $null
         if ($User.Manager) {
             try {
-                $mgr = Get-ADUser -Identity $User.Manager @serverParam -Properties DisplayName -ErrorAction SilentlyContinue
+                $mgr = Get-ADUser -Identity $User.Manager @serverParam @credParam -Properties DisplayName -ErrorAction SilentlyContinue
                 $managerName = $mgr.DisplayName
             } catch {}
         }

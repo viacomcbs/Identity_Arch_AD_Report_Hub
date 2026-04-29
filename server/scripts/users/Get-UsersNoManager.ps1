@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
@@ -15,10 +15,11 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $WarningPreference = 'SilentlyContinue'
 
     $anchorDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADDomain).DNSRoot }
-    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop
+    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop @credParam
     $domainsToQuery = if ($TargetDomain) { @($TargetDomain) } else { @($forest.Domains) }
 
     $Results = New-Object System.Collections.Generic.List[PSObject]
@@ -26,7 +27,7 @@ try {
     foreach ($domain in $domainsToQuery) {
         try {
             # Enabled users with no Manager attribute — no active management chain
-            $users = Get-ADUser `
+            $users = Get-ADUser ` @credParam
                 -LDAPFilter '(&(objectClass=user)(!(manager=*))(!(userAccountControl:1.2.840.113556.1.4.803:=2)))' `
                 -Server $domain `
                 -Properties DisplayName, SamAccountName, mail, Department, Title, `

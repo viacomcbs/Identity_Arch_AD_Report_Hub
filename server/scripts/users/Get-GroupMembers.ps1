@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$GroupDN,
     
@@ -22,6 +22,7 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Extract domain from group DN if not provided
     if (-not $GroupDomain -or $GroupDomain -eq "") {
@@ -34,10 +35,10 @@ try {
     
     # Try to get group details
     try {
-        $Group = Get-ADGroup -Identity $GroupDN -Server $GroupDomain -Properties Description, mail, ManagedBy, GroupCategory, GroupScope, Created, Modified, Member -ErrorAction Stop
+        $Group = Get-ADGroup -Identity $GroupDN -Server $GroupDomain -Properties Description, mail, ManagedBy, GroupCategory, GroupScope, Created, Modified, Member -ErrorAction Stop @credParam
     } catch {
         try {
-            $Group = Get-ADGroup -Identity $GroupDN -Properties Description, mail, ManagedBy, GroupCategory, GroupScope, Created, Modified, Member -ErrorAction Stop
+            $Group = Get-ADGroup -Identity $GroupDN -Properties Description, mail, ManagedBy, GroupCategory, GroupScope, Created, Modified, Member -ErrorAction Stop @credParam
         } catch {
             @{
                 Error = "Group not found: $GroupDN"
@@ -60,10 +61,10 @@ try {
                 
                 $ADObject = $null
                 try {
-                    $ADObject = Get-ADObject -Identity $MemberDN -Server $MemberDomain -Properties objectClass, DisplayName, mail, SamAccountName, Enabled, Description -ErrorAction Stop
+                    $ADObject = Get-ADObject -Identity $MemberDN -Server $MemberDomain -Properties objectClass, DisplayName, mail, SamAccountName, Enabled, Description -ErrorAction Stop @credParam
                 } catch {
                     try {
-                        $ADObject = Get-ADObject -Identity $MemberDN -Properties objectClass, DisplayName, mail, SamAccountName, Enabled, Description -ErrorAction SilentlyContinue
+                        $ADObject = Get-ADObject -Identity $MemberDN -Properties objectClass, DisplayName, mail, SamAccountName, Enabled, Description -ErrorAction SilentlyContinue @credParam
                     } catch { }
                 }
                 
@@ -85,7 +86,7 @@ try {
                     
                     if ($ObjectType -eq 'User') {
                         try {
-                            $UserDetails = Get-ADUser -Identity $MemberDN -Server $MemberDomain -Properties Title, Department, Enabled -ErrorAction SilentlyContinue
+                            $UserDetails = Get-ADUser -Identity $MemberDN -Server $MemberDomain -Properties Title, Department, Enabled -ErrorAction SilentlyContinue @credParam
                             if ($UserDetails) {
                                 $Enabled = $UserDetails.Enabled
                                 $Title = $UserDetails.Title

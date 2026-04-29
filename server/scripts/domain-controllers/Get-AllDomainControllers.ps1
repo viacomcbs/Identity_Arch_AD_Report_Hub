@@ -14,6 +14,7 @@ catch {
 }
 
 $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 # ForestDomain anchors Get-ADForest discovery to the selected forest
 if ($ForestDomain) { $serverParam['Server'] = $ForestDomain }
 elseif ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
@@ -23,7 +24,7 @@ $AllDCs = @()
 try {
     $Forest = $null
     try {
-        $Forest = Get-ADForest @serverParam -ErrorAction Stop
+        $Forest = Get-ADForest @serverParam @credParam -ErrorAction Stop
     } catch {
         # If forest discovery fails (common when querying a trusted forest without root access),
         # fall back to querying the provided domain only.

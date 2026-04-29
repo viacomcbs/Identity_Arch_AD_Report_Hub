@@ -1,16 +1,17 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
-    $Forest = Get-ADForest
+    $Forest = Get-ADForest @credParam
     $ForestRoot = $Forest.RootDomain
 
     # LDAP Filter: EA6 contains "Service Account" OR EmployeeID contains "SVC" OR EmployeeNumber contains "SVC"
     $LdapFilter = "(|(extensionAttribute6=*Service Account*)(employeeID=*SVC*)(employeeNumber=*SVC*))"
 
     # Query the Global Catalog (Port 3268) for forest-wide results
-    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server "${ForestRoot}:3268" -Properties `
+    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server "${ForestRoot}:3268" -Properties ` @credParam
         extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager
 
     $Results = foreach ($User in $Users) {

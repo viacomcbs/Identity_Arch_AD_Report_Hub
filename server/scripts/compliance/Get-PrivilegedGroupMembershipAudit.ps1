@@ -1,4 +1,4 @@
-param(
+﻿param(
     [int]$Days = 30,
     [string]$ForestDomain = "",
     [string]$TargetDomain = "",
@@ -31,6 +31,7 @@ function Get-CnFromDnOrSidLike {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 } catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
     exit 1
@@ -40,8 +41,8 @@ $cutoff = (Get-Date).AddDays(-$Days)
 
 $forest = $null
 try {
-    if ($ForestDomain) { $forest = Get-ADForest -Server $ForestDomain -ErrorAction Stop }
-    else { $forest = Get-ADForest -ErrorAction Stop }
+    if ($ForestDomain) { $forest = Get-ADForest -Server $ForestDomain -ErrorAction Stop } @credParam
+    else { $forest = Get-ADForest -ErrorAction Stop } @credParam
 } catch { $forest = $null }
 
 $privilegedGroups = if ($PrivilegedGroupsCsv) {
@@ -76,10 +77,10 @@ foreach ($domain in $domainsToQuery) {
     try {
         $pdc = $null
         try {
-            $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop
+            $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop @credParam
             $pdc = $domainInfo.PDCEmulator
         } catch {
-            $pdc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName
+            $pdc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName @credParam
         }
 
         # IMPORTANT: these events are logged on the DC that processed the change.
@@ -90,12 +91,12 @@ foreach ($domain in $domainsToQuery) {
 
         foreach ($groupName in $privilegedGroups) {
             try {
-                $group = Get-ADGroup -Identity $groupName -Server $pdc -ErrorAction SilentlyContinue
+                $group = Get-ADGroup -Identity $groupName -Server $pdc -ErrorAction SilentlyContinue @credParam
                 if (-not $group) { continue }
 
                 $meta = $null
                 try {
-                    $meta = Get-ADReplicationAttributeMetadata -Object $group.DistinguishedName -Server $pdc -Properties member -ErrorAction Stop |
+                    $meta = Get-ADReplicationAttributeMetadata -Object $group.DistinguishedName -Server $pdc -Properties member -ErrorAction Stop @credParam |
                         Where-Object { $_.AttributeName -eq 'member' } |
                         Select-Object -First 1
                 } catch { $meta = $null }

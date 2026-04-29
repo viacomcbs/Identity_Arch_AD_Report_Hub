@@ -1,10 +1,11 @@
-param(
+﻿param(
     [string]$TargetDomain = "",
     [int]$Limit = 0
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     $WarningPreference = 'SilentlyContinue'
     $ErrorActionPreference = 'SilentlyContinue'
@@ -23,7 +24,7 @@ try {
 
     $forest = $null
     try {
-        $forest = Get-ADForest -Server $TargetDomain -ErrorAction Stop
+        $forest = Get-ADForest -Server $TargetDomain -ErrorAction Stop @credParam
     } catch {
         $forest = $null
     }
@@ -42,7 +43,7 @@ try {
 
     foreach ($domain in @($forest.Domains)) {
         try {
-            $users = Get-ADUser -LDAPFilter $ldapFilter -Server $domain `
+            $users = Get-ADUser -LDAPFilter $ldapFilter -Server $domain ` @credParam
               -ResultPageSize 2000 -ResultSetSize $null `
               -Properties extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager
 

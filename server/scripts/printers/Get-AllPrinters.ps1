@@ -1,10 +1,11 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all printers (no limit)
-    $Printers = Get-ADObject -Filter { objectClass -eq "printQueue" } -Properties printerName, serverName, portName, printColor, printDuplexSupported, location, Description, WhenCreated
+    $Printers = Get-ADObject -Filter { objectClass -eq "printQueue" } -Properties printerName, serverName, portName, printColor, printDuplexSupported, location, Description, WhenCreated @credParam
     
     $Results = foreach ($Printer in $Printers) {
         [PSCustomObject]@{

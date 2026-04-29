@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
@@ -15,10 +15,11 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $WarningPreference = 'SilentlyContinue'
 
     $anchorDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADDomain).DNSRoot }
-    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop
+    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop @credParam
     $domainsToQuery = if ($TargetDomain) { @($TargetDomain) } else { @($forest.Domains) }
 
     $Results = New-Object System.Collections.Generic.List[PSObject]
@@ -26,7 +27,7 @@ try {
     foreach ($domain in $domainsToQuery) {
         try {
             # UAC bit 0x20 (32) = PASSWD_NOTREQD — account may have a blank password
-            $users = Get-ADUser -LDAPFilter '(userAccountControl:1.2.840.113556.1.4.803:=32)' `
+            $users = Get-ADUser -LDAPFilter '(userAccountControl:1.2.840.113556.1.4.803:=32)' ` @credParam
                 -Server $domain `
                 -Properties DisplayName, SamAccountName, mail, Enabled, `
                     PasswordLastSet, LastLogonDate, WhenCreated, `

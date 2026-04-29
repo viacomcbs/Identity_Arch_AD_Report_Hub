@@ -1,10 +1,11 @@
-param(
+﻿param(
     [Parameter(Mandatory=$false)]
     [string]$TargetDomain = ""
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $ServerArgs = @{}
     if ($TargetDomain -and $TargetDomain.Trim() -ne "") {
@@ -12,7 +13,7 @@ try {
     }
 
     # Fetch all distribution groups (no limit)
-    $Groups = Get-ADGroup @ServerArgs -Filter { GroupCategory -eq "Distribution" } -Properties DisplayName, mail, Description, GroupScope, ManagedBy, WhenCreated, member
+    $Groups = Get-ADGroup @ServerArgs -Filter { GroupCategory -eq "Distribution" } -Properties DisplayName, mail, Description, GroupScope, ManagedBy, WhenCreated, member @credParam
     
     $Results = foreach ($Group in $Groups) {
         [PSCustomObject]@{

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -7,6 +7,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -17,7 +18,7 @@ $Results = @()
 
 try {
     # Fetch all disabled users from specific domain
-    $Users = Get-ADUser -Filter { Enabled -eq $false } -Server $TargetDomain -Properties DisplayName, EmailAddress, Department, Title, WhenCreated, WhenChanged -ErrorAction Stop |
+    $Users = Get-ADUser -Filter { Enabled -eq $false } -Server $TargetDomain -Properties DisplayName, EmailAddress, Department, Title, WhenCreated, WhenChanged -ErrorAction Stop @credParam |
              Sort-Object DisplayName
     
     foreach ($User in $Users) {

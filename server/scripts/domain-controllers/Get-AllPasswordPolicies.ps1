@@ -4,9 +4,10 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
     
-    $AllDomains = if ($TargetDomain) { @($TargetDomain) } else { (Get-ADForest @serverParam).Domains }
+    $AllDomains = if ($TargetDomain) { @($TargetDomain) } else { (Get-ADForest @serverParam @credParam).Domains }
     $FullReport = New-Object System.Collections.Generic.List[PSObject]
 
     # Fetch all password policies (no limit)

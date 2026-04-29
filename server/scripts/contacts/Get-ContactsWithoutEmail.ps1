@@ -1,9 +1,10 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
-    $Contacts = Get-ADObject -Filter "objectClass -eq 'contact' -and -not (mail -like '*')" -Properties DisplayName, mail, Description, Company, Department, telephoneNumber, WhenCreated, WhenChanged
+    $Contacts = Get-ADObject -Filter "objectClass -eq 'contact' -and -not (mail -like '*')" -Properties DisplayName, mail, Description, Company, Department, telephoneNumber, WhenCreated, WhenChanged @credParam
     
     $Results = foreach ($Contact in $Contacts) {
         [PSCustomObject]@{

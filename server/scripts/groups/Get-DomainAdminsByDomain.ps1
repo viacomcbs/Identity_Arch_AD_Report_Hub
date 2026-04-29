@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -18,6 +18,7 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -28,13 +29,13 @@ $Results = @()
 
 try {
     # Get Domain Admins group members from specific domain
-    $Group = Get-ADGroup -Identity "Domain Admins" -Server $TargetDomain -Properties WhenCreated, WhenChanged, Description -ErrorAction Stop
-    $Members = Get-ADGroupMember -Identity $Group -Server $TargetDomain -ErrorAction SilentlyContinue | 
+    $Group = Get-ADGroup -Identity "Domain Admins" -Server $TargetDomain -Properties WhenCreated, WhenChanged, Description -ErrorAction Stop @credParam
+    $Members = Get-ADGroupMember -Identity $Group -Server $TargetDomain -ErrorAction SilentlyContinue @credParam | 
                Where-Object { $_.objectClass -eq 'user' }
     
     foreach ($Member in $Members) {
         try {
-            $User = Get-ADUser -Identity $Member.distinguishedName -Server $TargetDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+            $User = Get-ADUser -Identity $Member.distinguishedName -Server $TargetDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
             
             if ($User) {
                 $Results += [PSCustomObject]@{

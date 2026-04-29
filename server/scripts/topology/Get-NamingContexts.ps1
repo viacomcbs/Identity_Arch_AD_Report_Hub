@@ -1,16 +1,17 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     if ($TargetDomain) {
-        $forest = Get-ADForest -Server $TargetDomain
-        $rootDSE = Get-ADRootDSE -Server $TargetDomain
+        $forest = Get-ADForest -Server $TargetDomain @credParam
+        $rootDSE = Get-ADRootDSE -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest
-        $rootDSE = Get-ADRootDSE
+        $forest = Get-ADForest @credParam
+        $rootDSE = Get-ADRootDSE @credParam
     }
 
     $results = @()
@@ -32,7 +33,7 @@ try {
     # Domain NCs
     foreach ($domainName in $forest.Domains) {
         try {
-            $domain = Get-ADDomain -Identity $domainName -ErrorAction SilentlyContinue
+            $domain = Get-ADDomain -Identity $domainName -ErrorAction SilentlyContinue @credParam
             $results += [PSCustomObject]@{
                 Name = $domain.DNSRoot
                 Type = "Domain Partition"

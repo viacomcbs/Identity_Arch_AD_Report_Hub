@@ -1,15 +1,16 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$SearchValue
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $WildcardSearch = "*$($SearchValue.Trim('*'))*"
     
     # Search OUs (no limit)
-    $OUs = Get-ADOrganizationalUnit -Filter "Name -like '$WildcardSearch'" -Properties Description, WhenCreated, WhenChanged, ProtectedFromAccidentalDeletion
+    $OUs = Get-ADOrganizationalUnit -Filter "Name -like '$WildcardSearch'" -Properties Description, WhenCreated, WhenChanged, ProtectedFromAccidentalDeletion @credParam
     
     $Results = foreach ($OU in $OUs) {
         [PSCustomObject]@{

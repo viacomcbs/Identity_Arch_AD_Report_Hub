@@ -1,4 +1,4 @@
-# Get-SIDHistory.ps1
+﻿# Get-SIDHistory.ps1
 # Finds accounts with SID history attributes (potential security risk from migrations)
 param(
     [string]$ForestDomain = "",
@@ -8,6 +8,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     # Avoid warning noise corrupting JSON output
     $WarningPreference = 'SilentlyContinue'
@@ -15,9 +16,9 @@ try {
     $forest = $null
     try {
         if ($ForestDomain) {
-            $forest = Get-ADForest -Server $ForestDomain
+            $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null
@@ -31,14 +32,14 @@ try {
             # Prefer querying the PDC emulator for consistent results
             $dc = $null
             try {
-                $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop
+                $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop @credParam
                 $dc = $domainInfo.PDCEmulator
             } catch {
-                $dc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName
+                $dc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName @credParam
             }
 
             # Find users with SID history (use LDAP filter for performance)
-            $usersWithSIDHistory = Get-ADUser -LDAPFilter '(sIDHistory=*)' -Server $dc `
+            $usersWithSIDHistory = Get-ADUser -LDAPFilter '(sIDHistory=*)' -Server $dc ` @credParam
               -ResultPageSize 2000 -ResultSetSize $MaxResults `
               -Properties SIDHistory, DisplayName, SamAccountName, Enabled, LastLogonDate, WhenCreated -ErrorAction SilentlyContinue
 
@@ -61,7 +62,7 @@ try {
             }
 
             # Find groups with SID history
-            $groupsWithSIDHistory = Get-ADGroup -LDAPFilter '(sIDHistory=*)' -Server $dc `
+            $groupsWithSIDHistory = Get-ADGroup -LDAPFilter '(sIDHistory=*)' -Server $dc ` @credParam
               -ResultPageSize 2000 -ResultSetSize $MaxResults `
               -Properties SIDHistory, Name, SamAccountName, WhenCreated, GroupScope, GroupCategory -ErrorAction SilentlyContinue
 
@@ -84,7 +85,7 @@ try {
             }
 
             # Find computers with SID history
-            $computersWithSIDHistory = Get-ADComputer -LDAPFilter '(sIDHistory=*)' -Server $dc `
+            $computersWithSIDHistory = Get-ADComputer -LDAPFilter '(sIDHistory=*)' -Server $dc ` @credParam
               -ResultPageSize 2000 -ResultSetSize $MaxResults `
               -Properties SIDHistory, Name, SamAccountName, Enabled, WhenCreated -ErrorAction SilentlyContinue
 

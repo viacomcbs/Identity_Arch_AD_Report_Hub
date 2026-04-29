@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$GroupName,
 
@@ -8,13 +8,14 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $ServerArgs = @{}
     if ($TargetDomain -and $TargetDomain.Trim() -ne "") {
         $ServerArgs.Server = $TargetDomain.Trim()
     }
 
-    $Group = Get-ADGroup @ServerArgs -Identity $GroupName -Properties member, mail, Description, ManagedBy
+    $Group = Get-ADGroup @ServerArgs -Identity $GroupName -Properties member, mail, Description, ManagedBy @credParam
     
     if ($null -eq $Group) {
         @{ Error = "Group not found" } | ConvertTo-Json
@@ -24,7 +25,7 @@ try {
     $Members = @()
     foreach ($MemberDN in $Group.member) {
         try {
-            $Object = Get-ADObject @ServerArgs -Identity $MemberDN -Properties Name, Title, Department, mail, objectClass, SamAccountName
+            $Object = Get-ADObject @ServerArgs -Identity $MemberDN -Properties Name, Title, Department, mail, objectClass, SamAccountName @credParam
             
             $Members += [PSCustomObject]@{
                 Name              = $Object.Name

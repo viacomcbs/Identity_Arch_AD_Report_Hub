@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$false)]
     [string]$GroupName,
 
@@ -13,6 +13,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     $ServerArgs = @{}
     if ($TargetDomain -and $TargetDomain.Trim() -ne "") {
@@ -22,7 +23,7 @@ try {
     $SelectedGroup = $null
 
     if ($GroupDN -and $GroupDN.Trim() -ne "") {
-        $SelectedGroup = Get-ADGroup @ServerArgs -Identity $GroupDN.Trim() -Properties mail, DisplayName, GroupCategory, member
+        $SelectedGroup = Get-ADGroup @ServerArgs -Identity $GroupDN.Trim() -Properties mail, DisplayName, GroupCategory, member @credParam
         if (-not $SelectedGroup) {
             @{ Error = "Group not found for DN provided" } | ConvertTo-Json
             exit 1
@@ -42,7 +43,7 @@ try {
         $SafeGroupName = $GroupName.Trim()
         $Filter = "Name -like '*$SafeGroupName*' -or DisplayName -like '*$SafeGroupName*' -or mail -like '*$SafeGroupName*'"
 
-        $Groups = Get-ADGroup @ServerArgs -Filter $Filter -Properties mail, DisplayName, GroupCategory |
+        $Groups = Get-ADGroup @ServerArgs -Filter $Filter -Properties mail, DisplayName, GroupCategory @credParam |
                   Where-Object { $_.GroupCategory -eq "Distribution" }
 
         if (-not $Groups) {
@@ -61,7 +62,7 @@ try {
         }
 
         $SelectedGroup = $Groups | Select-Object -First 1
-        $SelectedGroup = Get-ADGroup @ServerArgs -Identity $SelectedGroup.DistinguishedName -Properties mail, DisplayName, member
+        $SelectedGroup = Get-ADGroup @ServerArgs -Identity $SelectedGroup.DistinguishedName -Properties mail, DisplayName, member @credParam
     }
 
     # Get members
@@ -74,10 +75,10 @@ try {
             # First try scoping to the requested domain/server
             $Object = $null
             try {
-                $Object = Get-ADObject @ServerArgs -Identity $MemberDN -Properties Name, Title, Department, mail, objectClass
+                $Object = Get-ADObject @ServerArgs -Identity $MemberDN -Properties Name, Title, Department, mail, objectClass @credParam
             } catch {
                 # Fallback: allow ADWS to resolve in its home domain (helps with cross-domain members)
-                $Object = Get-ADObject -Identity $MemberDN -Properties Name, Title, Department, mail, objectClass -ErrorAction Stop
+                $Object = Get-ADObject -Identity $MemberDN -Properties Name, Title, Department, mail, objectClass -ErrorAction Stop @credParam
             }
 
             $MemberList.Add([PSCustomObject]@{

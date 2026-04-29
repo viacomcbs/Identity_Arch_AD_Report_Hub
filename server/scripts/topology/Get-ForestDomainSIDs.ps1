@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Gets the SID of every domain in the AD forest.
 
@@ -23,19 +23,20 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $ErrorActionPreference = 'Stop'
 
     if ($TargetDomain) {
-        $forest = Get-ADForest -Server $TargetDomain
+        $forest = Get-ADForest -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest
+        $forest = Get-ADForest @credParam
     }
 
     $results = [System.Collections.Generic.List[PSObject]]::new()
 
     foreach ($domainName in $forest.Domains) {
         try {
-            $domain = Get-ADDomain -Identity $domainName -ErrorAction Stop
+            $domain = Get-ADDomain -Identity $domainName -ErrorAction Stop @credParam
             $sidStr = if ($domain.DomainSID) { $domain.DomainSID.ToString() } else { $null }
             $results.Add([PSCustomObject]@{
                 DomainName  = $domain.DNSRoot

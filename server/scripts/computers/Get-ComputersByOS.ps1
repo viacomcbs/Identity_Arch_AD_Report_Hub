@@ -1,13 +1,14 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$OperatingSystem
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all computers by OS (no limit)
-    $Computers = Get-ADComputer -Filter "OperatingSystem -like '*$OperatingSystem*'" -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated
+    $Computers = Get-ADComputer -Filter "OperatingSystem -like '*$OperatingSystem*'" -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated @credParam
     
     $Results = foreach ($Computer in $Computers) {
         [PSCustomObject]@{

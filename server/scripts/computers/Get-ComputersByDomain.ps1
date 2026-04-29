@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -7,6 +7,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -16,7 +17,7 @@ catch {
 $Results = @()
 
 try {
-    $Computers = Get-ADComputer -Filter * -Server $TargetDomain -Properties `
+    $Computers = Get-ADComputer -Filter * -Server $TargetDomain -Properties ` @credParam
         Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, `
         Description, DNSHostName, Enabled, DistinguishedName -ErrorAction Stop
     

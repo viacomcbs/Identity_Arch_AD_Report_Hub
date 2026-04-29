@@ -1,12 +1,13 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$ComputerName
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
-    $Computer = Get-ADComputer -Identity $ComputerName -Properties *
+    $Computer = Get-ADComputer -Identity $ComputerName -Properties * @credParam
     
     if ($null -eq $Computer) {
         @{ Error = "Computer not found" } | ConvertTo-Json

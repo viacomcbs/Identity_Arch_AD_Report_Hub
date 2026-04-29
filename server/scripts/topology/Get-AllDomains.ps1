@@ -1,25 +1,26 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     if ($TargetDomain) {
-        $forest = Get-ADForest -Server $TargetDomain
+        $forest = Get-ADForest -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest
+        $forest = Get-ADForest @credParam
     }
     $results = @()
 
     foreach ($domainName in $forest.Domains) {
         try {
-            $domain = Get-ADDomain -Identity $domainName -ErrorAction SilentlyContinue
+            $domain = Get-ADDomain -Identity $domainName -ErrorAction SilentlyContinue @credParam
             
             # Count DCs
             $dcCount = 0
             try {
-                $dcs = Get-ADDomainController -Filter * -Server $domainName -ErrorAction SilentlyContinue
+                $dcs = Get-ADDomainController -Filter * -Server $domainName -ErrorAction SilentlyContinue @credParam
                 $dcCount = @($dcs).Count
             } catch {}
 

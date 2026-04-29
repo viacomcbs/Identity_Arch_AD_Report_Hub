@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$false)]
     [string]$TargetDomain = ""
 )
@@ -22,6 +22,7 @@ try {
 
     try {
         Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     } catch {
         @{
             Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)"
@@ -49,7 +50,7 @@ try {
         $DomainsToQuery = @($TargetDomain.Trim())
     } else {
         # Query all domains in forest
-        $Forest = Get-ADForest -ErrorAction Stop
+        $Forest = Get-ADForest -ErrorAction Stop @credParam
         $DomainsToQuery = $Forest.Domains
     }
     

@@ -1,20 +1,21 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $WarningPreference = 'SilentlyContinue'
 
     $anchorDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADDomain).DNSRoot }
-    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop
+    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop @credParam
     $domainsToQuery = @($forest.Domains)
 
     $Results = New-Object System.Collections.Generic.List[PSObject]
 
     foreach ($domain in $domainsToQuery) {
         try {
-            $DisabledUsers = Get-ADUser -Filter 'Enabled -eq $false' -Server $domain -Properties `
+            $DisabledUsers = Get-ADUser -Filter 'Enabled -eq $false' -Server $domain -Properties ` @credParam
                 DisplayName, SamAccountName, mail, Title, Department, Enabled, `
                 memberOf, WhenCreated, WhenChanged, DistinguishedName -ErrorAction SilentlyContinue
 

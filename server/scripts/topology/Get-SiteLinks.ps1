@@ -1,9 +1,10 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     $siteLinksParams = @{
         Filter     = '*'
@@ -13,7 +14,7 @@ try {
     if ($TargetDomain) {
         $siteLinksParams['Server'] = $TargetDomain
     }
-    $siteLinks = Get-ADReplicationSiteLink @siteLinksParams
+    $siteLinks = Get-ADReplicationSiteLink @siteLinksParams @credParam
 
     $results = foreach ($link in $siteLinks) {
         $sites = @($link.SiteList) | ForEach-Object {

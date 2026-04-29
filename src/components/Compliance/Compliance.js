@@ -13,19 +13,13 @@ const Compliance = () => {
   const [error, setError] = useState(null);
   const [activeQuery, setActiveQuery] = useState(null);
   const [daysInput, setDaysInput] = useState(90);
-  /** When true, Privileged Group Changes uses linked-value replication metadata (per-member add/remove). */
   const [memberDetailInPrivilegedChanges, setMemberDetailInPrivilegedChanges] = useState(true);
-  /** Combined built-in Administrators: membership changes + Security log audit (same API round-trip). */
   const [combinedBuiltin, setCombinedBuiltin] = useState(null);
 
-  // Pagination state
   const [pageSize, setPageSize] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Sorting state
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-  /** Per-group change reports reuse query `privileged-changes` with a server-side groupFilter. */
   const predefinedQueries = [
     { id: 'privileged-changes', label: 'Privileged Group Changes', description: 'Membership changes in all privileged groups (DA, EA, SA, BA, AD-Enterprise Systems Admins — replication metadata)', hasDays: true },
     { id: 'privileged-membership-audit', label: 'Privileged Group Membership Audit', description: 'Who added/removed whom, when, and from which privileged group (DC Security Logs)', hasDays: true },
@@ -96,9 +90,7 @@ const Compliance = () => {
       ) {
         params.memberDetails = memberDetailInPrivilegedChanges;
       }
-      // domain = forest anchor (selected in navbar)
       if (selectedDomain) params.domain = selectedDomain;
-      // targetDomain = optional per-domain override
       if (domainOverride && domainOverride.trim()) {
         params.targetDomain = domainOverride.trim();
       }
@@ -123,7 +115,6 @@ const Compliance = () => {
     }
   };
 
-  // Sorting logic
   const sortedData = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
     let sortableItems = [...data];
@@ -185,12 +176,11 @@ const Compliance = () => {
     if (data.some((r) => typeof r.DetailNote === 'string' && r.DetailNote.trim())) return null;
 
     if (!memberDetailInPrivilegedChanges) {
-      return 'To see which members were added or removed, enable “show who was added or removed” under the lookback period, then run this report again. For actor and member from Security events, use Privileged Group Membership Audit.';
+      return 'To see which members were added or removed, enable "show who was added or removed" under the lookback period, then run this report again. For actor and member from Security events, use Privileged Group Membership Audit.';
     }
     return 'Per-member linked replication metadata was not returned. Try a longer lookback, confirm the service account can read linked-value replication metadata on each domain PDC, or use Privileged Group Membership Audit for Security log detail.';
   }, [isActivePrivilegedChangesReport, memberDetailInPrivilegedChanges, data]);
 
-  // Pagination helpers
   const totalPages = Math.ceil(sortedData.length / pageSize);
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
@@ -212,7 +202,7 @@ const Compliance = () => {
 
   const getSortIndicator = (key) => {
     if (sortConfig.key !== key) return <span className="sort-indicator">&#8597;</span>;
-    return <span className="sort-indicator active">{sortConfig.direction === 'asc' ? '\u2191' : '\u2193'}</span>;
+    return <span className="sort-indicator active">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
   const SortableHeader = ({ columnKey, label }) => (
@@ -634,7 +624,7 @@ const Compliance = () => {
       const hasDetailNote = chg.some((r) => typeof r.DetailNote === 'string' && r.DetailNote.trim());
       if (!hasMemberDn && !hasDetailNote) {
         chgHint = !memberDetailInPrivilegedChanges
-          ? 'To see which members were added or removed, enable “show who was added or removed” under the lookback period, then run this report again.'
+          ? 'To see which members were added or removed, enable "show who was added or removed" under the lookback period, then run this report again.'
           : 'Per-member linked replication metadata was not returned. Try a longer lookback or confirm the service account can read linked-value replication metadata / Security logs on the PDC.';
       }
     }
@@ -723,7 +713,7 @@ const Compliance = () => {
       <div className="page-header">
         <div className="page-title">
           <span className="page-icon">&#x1F6E1;&#xFE0F;</span>
-          <h1>Compliance & Security Audit</h1>
+          <h1>Compliance &amp; Security Audit</h1>
         </div>
         <p className="page-description">Audit privileged access, delegation settings, SID history, and security compliance across your AD forest</p>
       </div>
@@ -731,7 +721,6 @@ const Compliance = () => {
       <div className="query-panel card">
         <h3>Security Audit Reports</h3>
 
-        {/* Optional per-domain override */}
         <div className="days-input-section" style={{ marginTop: '10px' }}>
           <label>Optional: Run for a specific domain:</label>
           <input
@@ -754,7 +743,6 @@ const Compliance = () => {
           </span>
         </div>
 
-        {/* Days input for applicable queries */}
         <div className="days-input-section">
           <label>Lookback period (days):</label>
           <input

@@ -6,8 +6,8 @@ const os = require('os');
  */
 const activityLogger = (req, res, next) => {
   // Skip logging for certain paths
-  const skipPaths = ['/api/health', '/api/activity-logs'];
-  if (skipPaths.some(p => req.path.startsWith(p) && req.method === 'GET')) {
+  const skipPaths = ['/api/health', '/api/activity-logs', '/api/auth'];
+  if (skipPaths.some(p => req.path.startsWith(p))) {
     return next();
   }
 
@@ -42,7 +42,8 @@ const activityLogger = (req, res, next) => {
 
   // Get target from query or params
   const getTarget = () => {
-    return req.query.q || req.query.query || req.params.name || req.params.id || req.query.type || '';
+    const params = req.params || {};
+    return req.query.q || req.query.query || params.name || params.id || req.query.type || '';
   };
 
   // Log on response finish

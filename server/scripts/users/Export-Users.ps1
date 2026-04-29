@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Filter = "all",
     [string]$Format = "json",
     [int]$Limit = 1000
@@ -6,6 +6,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Build filter based on parameter
     $ADFilter = switch ($Filter) {
@@ -14,7 +15,7 @@ try {
         default    { "*" }
     }
     
-    $Users = Get-ADUser -Filter $ADFilter -Properties `
+    $Users = Get-ADUser -Filter $ADFilter -Properties ` @credParam
         DisplayName, EmailAddress, employeeID, employeeNumber, Title, Department, `
         telephoneNumber, mobile, Manager, Enabled, WhenCreated, WhenChanged, LastLogonDate |
         Select-Object -First $Limit

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh pr *)",
+      "Bash(gh repo *)",
+      "Bash(git checkout *)",
+      "Bash(git cherry-pick *)",
+      "Bash(npm run *)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(sed -i 's/#5b21b6/#0c6177/g; s/#f5f3ff/#ecfeff/g; s/#c4b5fd/#67e8f9/g' \"C:\\\\Users\\\\bhanush\\\\OneDrive - Paramount\\\\Documents\\\\ProjectsS\\\\ad-report-hub\\\\src\\\\components\\\\Layout\\\\Navbar.css\")",
+      "Bash(sed -i 's/#a78bfa/#22d3ee/g; s/rgba\\(124,58,237,0.12\\)/rgba\\(14,116,144,0.12\\)/g; s/rgba\\(167,139,250,0.15\\)/rgba\\(14,116,144,0.15\\)/g' \"C:\\\\Users\\\\bhanush\\\\OneDrive - Paramount\\\\Documents\\\\ProjectsS\\\\ad-report-hub\\\\src\\\\components\\\\Dashboard\\\\Dashboard.css\")",
+      "Bash(npx kill-port *)",
+      "Bash(npm start *)"
+    ]
+  }
+}

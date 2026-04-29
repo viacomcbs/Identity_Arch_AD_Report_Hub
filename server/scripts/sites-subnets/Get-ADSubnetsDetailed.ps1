@@ -18,16 +18,17 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
     
-    $ConfigPartition = (Get-ADRootDSE @serverParam).configurationNamingContext
+    $ConfigPartition = (Get-ADRootDSE @serverParam @credParam).configurationNamingContext
 
     # Pre-fetch Site Links and DCs for mapping
-    $SiteLinks = Get-ADReplicationSiteLink -Filter * @serverParam
-    $SiteServerObjects = Get-ADObject -SearchBase "CN=Sites,$ConfigPartition" -Filter "objectClass -eq 'server'" @serverParam
+    $SiteLinks = Get-ADReplicationSiteLink -Filter * @serverParam @credParam
+    $SiteServerObjects = Get-ADObject -SearchBase "CN=Sites,$ConfigPartition" -Filter "objectClass -eq 'server'" @serverParam @credParam
 
     # Get Subnets with Extended Properties (no limit - fetch all)
-    $Subnets = Get-ADReplicationSubnet -Filter * -Properties Site, Description, Location, WhenCreated, WhenChanged @serverParam
+    $Subnets = Get-ADReplicationSubnet -Filter * -Properties Site, Description, Location, WhenCreated, WhenChanged @serverParam @credParam
 
     $Results = foreach ($Subnet in $Subnets) {
         $SiteDN = $Subnet.Site

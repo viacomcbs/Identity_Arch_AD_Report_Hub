@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Filter = "all",
     [string]$Format = "json",
     [switch]$IncludeMembers,
@@ -8,6 +8,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $ServerArgs = @{}
     if ($TargetDomain -and $TargetDomain.Trim() -ne "") {
@@ -22,7 +23,7 @@ try {
         default        { "*" }
     }
     
-    $Groups = Get-ADGroup @ServerArgs -Filter $ADFilter -Properties DisplayName, mail, Description, GroupCategory, GroupScope, ManagedBy, WhenCreated, WhenChanged, member |
+    $Groups = Get-ADGroup @ServerArgs -Filter $ADFilter -Properties DisplayName, mail, Description, GroupCategory, GroupScope, ManagedBy, WhenCreated, WhenChanged, member @credParam |
               Select-Object -First $Limit
     
     $Results = foreach ($Group in $Groups) {

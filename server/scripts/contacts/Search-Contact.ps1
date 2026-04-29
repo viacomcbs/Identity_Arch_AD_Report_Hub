@@ -1,15 +1,16 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$SearchValue
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $WildcardSearch = "*$($SearchValue.Trim('*'))*"
     
     # Search contacts (no limit)
-    $Contacts = Get-ADObject -Filter "objectClass -eq 'contact' -and (Name -like '$WildcardSearch' -or DisplayName -like '$WildcardSearch' -or mail -like '$WildcardSearch')" -Properties DisplayName, mail, Description, Company, Department, telephoneNumber, WhenCreated
+    $Contacts = Get-ADObject -Filter "objectClass -eq 'contact' -and (Name -like '$WildcardSearch' -or DisplayName -like '$WildcardSearch' -or mail -like '$WildcardSearch')" -Properties DisplayName, mail, Description, Company, Department, telephoneNumber, WhenCreated @credParam
     
     $Results = foreach ($Contact in $Contacts) {
         [PSCustomObject]@{

@@ -1,10 +1,11 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all enabled computers (no limit)
-    $Computers = Get-ADComputer -Filter { Enabled -eq $true } -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, LastLogonDate, WhenCreated
+    $Computers = Get-ADComputer -Filter { Enabled -eq $true } -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, LastLogonDate, WhenCreated @credParam
     
     $Results = foreach ($Computer in $Computers) {
         [PSCustomObject]@{

@@ -1,21 +1,22 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     if ($TargetDomain) {
-        $forest = Get-ADForest -Server $TargetDomain
+        $forest = Get-ADForest -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest
+        $forest = Get-ADForest @credParam
     }
     $results = @()
 
     # Get trusts for each domain
     foreach ($domainName in $forest.Domains) {
         try {
-            $trusts = Get-ADTrust -Filter * -Server $domainName -ErrorAction SilentlyContinue
+            $trusts = Get-ADTrust -Filter * -Server $domainName -ErrorAction SilentlyContinue @credParam
 
             foreach ($trust in $trusts) {
                 $direction = switch ($trust.Direction) {
