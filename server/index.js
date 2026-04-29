@@ -74,16 +74,41 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
+  const mode = process.env.NODE_ENV === 'production' ? 'Production' : 'Development';
   console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║             AD Report Hub - Server Started                 ║
 ╠════════════════════════════════════════════════════════════╣
-║  Server running on: http://localhost:${PORT}                  ║
-║  API Base URL:      http://localhost:${PORT}/api              ║
-║  Authentication:    Windows Integrated (service account)   ║
+║  Mode:       ${mode.padEnd(46)}║
+║  URL:        http://localhost:${PORT}${' '.repeat(27)}║
+║  API:        http://localhost:${PORT}/api${' '.repeat(23)}║
+║  Auth:       Windows Integrated (service account)         ║
 ╚════════════════════════════════════════════════════════════╝
   `);
 });
+
+// Graceful shutdown — stop accepting new connections, finish existing ones
+const shutdown = (signal) => {
+  console.log(`\n[AD Report Hub] Received ${signal}. Shutting down gracefully...`);
+  server.close((err) => {
+    if (err) {
+      console.error('[AD Report Hub] Error during shutdown:', err.message);
+      process.exit(1);
+    }
+    console.log('[AD Report Hub] All connections closed. Exiting.');
+    process.exit(0);
+  });
+
+  // Force-kill after 10 s if connections are still hanging
+  setTimeout(() => {
+    console.warn('[AD Report Hub] Forcing exit after timeout.');
+    process.exit(1);
+  }, 10_000).unref();
+};
+
+process.on('SIGINT',  () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGHUP',  () => shutdown('SIGHUP'));
 
 module.exports = app;
