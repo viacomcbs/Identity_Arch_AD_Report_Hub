@@ -1,11 +1,20 @@
 {
-  "domains": [
+  "forests": [
     {
-      "name": "corp.contoso.com",
-      "forest": "Contoso",
-      "label": "Contoso — Corp",
+      "id": "CBS",
+      "name": "CBS Forest",
+      "root": "ad.cbs.net",
+      "label": "CBS — AD.cbs.net",
       "requiresElevated": false,
-      "description": "Example production domain — replace with your DNS names"
+      "description": "CBS Active Directory forest"
+    },
+    {
+      "id": "Viacom",
+      "name": "Viacom/Paramount Forest",
+      "root": "ad.viacom.com",
+      "label": "Viacom/Paramount — AD.viacom.com",
+      "requiresElevated": false,
+      "description": "Viacom/Paramount Active Directory forest"
     }
   ]
 }

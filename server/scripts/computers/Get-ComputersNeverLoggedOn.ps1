@@ -1,10 +1,11 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all computers that never logged on (no limit)
-    $Computers = Get-ADComputer -Filter { LastLogonDate -notlike "*" } -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, WhenCreated
+    $Computers = Get-ADComputer -Filter { LastLogonDate -notlike "*" } -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, WhenCreated @credParam
     
     $Results = foreach ($Computer in $Computers) {
         [PSCustomObject]@{

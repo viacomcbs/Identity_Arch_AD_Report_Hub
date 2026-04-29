@@ -30,12 +30,15 @@ require('./utils/database');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(activityLogger);
 
-// API Routes
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 app.use('/api/users', usersRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/computers', computersRoutes);
@@ -53,11 +56,6 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/compliance', complianceRoutes);
 app.use('/api/security', securityRoutes);
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
@@ -83,7 +81,7 @@ app.listen(PORT, () => {
 ╠════════════════════════════════════════════════════════════╣
 ║  Server running on: http://localhost:${PORT}                  ║
 ║  API Base URL:      http://localhost:${PORT}/api              ║
-║  Authentication:    Windows Integrated (current user)      ║
+║  Authentication:    Windows Integrated (service account)   ║
 ╚════════════════════════════════════════════════════════════╝
   `);
 });

@@ -1,14 +1,15 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     $LdapFilter = "(extensionAttribute6=Human Primary Identity Contractor)"
 
-    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server $TargetDomain -ResultPageSize 2000 -ResultSetSize $null -Properties `
+    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server $TargetDomain -ResultPageSize 2000 -ResultSetSize $null -Properties ` @credParam
         extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled
 
     $Results = foreach ($User in $Users) {

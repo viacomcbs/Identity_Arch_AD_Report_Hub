@@ -1,9 +1,10 @@
-param(
+﻿param(
     [string]$Server = ""
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Build common parameters for domain targeting
     $CommonParams = @{}
@@ -12,11 +13,11 @@ try {
     }
     
     # Fetch all OUs and find empty ones (no limit)
-    $OUs = Get-ADOrganizationalUnit -Filter * -Properties Description, WhenCreated, WhenChanged @CommonParams
+    $OUs = Get-ADOrganizationalUnit -Filter * -Properties Description, WhenCreated, WhenChanged @CommonParams @credParam
     
     $EmptyOUs = @()
     foreach ($OU in $OUs) {
-        $ChildCount = (Get-ADObject -SearchBase $OU.DistinguishedName -SearchScope OneLevel -Filter * @CommonParams).Count
+        $ChildCount = (Get-ADObject -SearchBase $OU.DistinguishedName -SearchScope OneLevel -Filter * @CommonParams).Count @credParam
         if ($ChildCount -eq 0) {
             $EmptyOUs += [PSCustomObject]@{
                 Name                      = $OU.Name

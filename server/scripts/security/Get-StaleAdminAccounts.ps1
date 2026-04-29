@@ -1,14 +1,15 @@
-param(
+﻿param(
     [string]$TargetDomain,
     [int]$InactiveDays = 90
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $WarningPreference = 'SilentlyContinue'
 
     $anchorDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADDomain).DNSRoot }
-    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop
+    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop @credParam
     $domainsToQuery = @($forest.Domains)
     $cutoffDate = (Get-Date).AddDays(-$InactiveDays)
 
@@ -16,7 +17,7 @@ try {
 
     foreach ($domain in $domainsToQuery) {
         try {
-            $adminUsers = Get-ADUser -Filter 'adminCount -eq 1' -Server $domain -Properties `
+            $adminUsers = Get-ADUser -Filter 'adminCount -eq 1' -Server $domain -Properties ` @credParam
                 DisplayName, SamAccountName, mail, Title, Department, Enabled, `
                 memberOf, WhenCreated, LastLogonDate, PasswordLastSet, PasswordNeverExpires, `
                 DistinguishedName -ErrorAction SilentlyContinue

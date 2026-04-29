@@ -1,14 +1,15 @@
-param(
+﻿param(
     [int]$Days = 30
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $CutoffDate = (Get-Date).AddDays(-$Days)
     
     # Fetch all users created in last X days (no limit)
-    $Users = Get-ADUser -Filter { WhenCreated -ge $CutoffDate } -Properties DisplayName, EmailAddress, Department, Title, Enabled, WhenCreated |
+    $Users = Get-ADUser -Filter { WhenCreated -ge $CutoffDate } -Properties DisplayName, EmailAddress, Department, Title, Enabled, WhenCreated @credParam |
              Sort-Object WhenCreated -Descending
     
     $Results = foreach ($User in $Users) {

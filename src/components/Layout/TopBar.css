@@ -186,6 +186,14 @@
   background: var(--bg-hover);
 }
 
+.topbar-signout {
+  color: #dc2626;
+}
+
+.topbar-signout:hover {
+  background: #fef2f2;
+}
+
 /* ── Close button ──────────────────────────── */
 .topbar-close-btn {
   width: 32px;

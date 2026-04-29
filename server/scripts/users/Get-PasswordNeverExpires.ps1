@@ -1,10 +1,11 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all users with password never expires (no limit)
-    $Users = Get-ADUser -Filter { PasswordNeverExpires -eq $true -and Enabled -eq $true } -Properties DisplayName, EmailAddress, Department, Title, PasswordLastSet, PasswordNeverExpires
+    $Users = Get-ADUser -Filter { PasswordNeverExpires -eq $true -and Enabled -eq $true } -Properties DisplayName, EmailAddress, Department, Title, PasswordLastSet, PasswordNeverExpires @credParam
     
     $Results = foreach ($User in $Users) {
         [PSCustomObject]@{

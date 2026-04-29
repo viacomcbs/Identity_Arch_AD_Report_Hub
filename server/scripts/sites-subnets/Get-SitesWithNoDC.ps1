@@ -15,18 +15,19 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
     
-    $ConfigPartition = (Get-ADRootDSE @serverParam).configurationNamingContext
+    $ConfigPartition = (Get-ADRootDSE @serverParam @credParam).configurationNamingContext
     
     # Get all sites
-    $AllSites = Get-ADReplicationSite -Filter * -Properties WhenCreated, WhenChanged, Description @serverParam
+    $AllSites = Get-ADReplicationSite -Filter * -Properties WhenCreated, WhenChanged, Description @serverParam @credParam
     
     # Get all server objects (DCs) and their sites
-    $SiteServerObjects = Get-ADObject -SearchBase "CN=Sites,$ConfigPartition" -Filter "objectClass -eq 'server'" -Properties DistinguishedName @serverParam
+    $SiteServerObjects = Get-ADObject -SearchBase "CN=Sites,$ConfigPartition" -Filter "objectClass -eq 'server'" -Properties DistinguishedName @serverParam @credParam
     
     # Get site links for additional info
-    $SiteLinks = Get-ADReplicationSiteLink -Filter * @serverParam
+    $SiteLinks = Get-ADReplicationSiteLink -Filter * @serverParam @credParam
     
     $Results = @()
     
@@ -43,7 +44,7 @@ try {
             $LinkNames = ($AssociatedLinks | Select-Object -ExpandProperty Name) -join ", "
             
             # Count subnets associated with this site
-            $SubnetCount = (Get-ADReplicationSubnet -Filter "Site -eq '$($Site.DistinguishedName)'" @serverParam -ErrorAction SilentlyContinue | Measure-Object).Count
+            $SubnetCount = (Get-ADReplicationSubnet -Filter "Site -eq '$($Site.DistinguishedName)'" @serverParam @credParam -ErrorAction SilentlyContinue | Measure-Object).Count
             
             $Results += [PSCustomObject]@{
                 SiteName        = $SiteName

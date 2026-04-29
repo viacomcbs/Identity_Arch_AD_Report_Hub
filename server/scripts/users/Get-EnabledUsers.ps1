@@ -1,10 +1,11 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all enabled users (no limit)
-    $Users = Get-ADUser -Filter { Enabled -eq $true } -Properties DisplayName, EmailAddress, Department, Title, WhenCreated, LastLogonDate
+    $Users = Get-ADUser -Filter { Enabled -eq $true } -Properties DisplayName, EmailAddress, Department, Title, WhenCreated, LastLogonDate @credParam
     
     $Results = foreach ($User in $Users) {
         [PSCustomObject]@{

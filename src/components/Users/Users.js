@@ -7,7 +7,7 @@ import { formatDate } from '../../utils/dateUtils';
 import { useApp } from '../../context/AppContext';
 
 const Users = () => {
-  const { selectedDomain } = useApp();
+  const { selectedDomain, validateDomainForForest } = useApp();
   const [searchValue, setSearchValue] = useState('');
   const [searchType, setSearchType] = useState('wildcard');
   const [users, setUsers] = useState([]);
@@ -39,18 +39,8 @@ const Users = () => {
     { id: 'disabled-forest', label: 'All Disabled Users', description: 'All disabled accounts across the forest' },
     { id: 'enabled-human-forest', label: 'Enabled Users with EA6 "Human"', description: 'Forest-wide enabled users where EA6 contains "Human"' },
     { id: 'empty-ea6', label: 'Users with Empty EA6', description: 'Forest-wide users missing EA6 attribute' },
-    { id: 'password-expired', label: 'Password Expired', description: 'Users with expired passwords' },
-    { id: 'password-never-expires', label: 'Password Never Expires', description: 'Non-compliant password settings' },
-    { id: 'never-logged-on', label: 'Never Logged On', description: 'Users who have never authenticated' },
     { id: 'created-x-days', label: 'Users Created in X Days', description: 'Recently created user accounts', needsDays: true },
     { id: 'locked-out', label: 'Locked Out Users', description: 'Lookup a user and show lockout source (DC/caller/IP)', needsLookup: true },
-  ];
-
-  const governanceQueries = [
-    { id: 'passwd-not-required', label: 'Password Not Required', description: 'Accounts with PASSWD_NOTREQD UAC flag — may allow blank passwords (Risk: High if enabled)' },
-    { id: 'no-manager', label: 'Accounts with No Manager', description: 'Enabled users with no Manager attribute set — orphan risk with no management chain' },
-    { id: 'disabled-manager', label: 'Accounts with Disabled Manager', description: 'Enabled users whose manager account is disabled — oversight gap' },
-    { id: 'contractor-by-type', label: 'Contractors & Temps by Employee Type', description: 'All accounts with non-empty employeeType with expiration status side by side' },
   ];
 
   const domainSpecificQueries = [
@@ -58,11 +48,12 @@ const Users = () => {
     { id: 'disabled-by-domain', label: 'Disabled Users', description: 'All disabled users in specific domain', needsDomain: true },
     { id: 'enabled-human', label: 'Enabled Human Accounts', description: 'Employees matched to HR (EA6 = Human Primary Identity SF Match)', needsDomain: true },
     { id: 'enabled-contractors', label: 'Enabled Contractors', description: 'Contractor accounts (EA6 = Human Primary Identity Contractor)', needsDomain: true },
+    { id: 'contractor-by-type', label: 'Contractors & Temps by Employee Type', description: 'Count of contractors and temps grouped by employee type', needsDomain: true },
     { id: 'employee-type-count', label: 'Employee Type Count', description: 'Count of enabled users by EmployeeType attribute', needsDomain: true },
     { id: 'ea6-value-count', label: 'EA6 Value Count', description: 'Count of enabled users by extensionAttribute6 value', needsDomain: true },
   ];
 
-  const predefinedQueries = [...forestWideQueries, ...domainSpecificQueries, ...governanceQueries];
+  const predefinedQueries = [...forestWideQueries, ...domainSpecificQueries];
 
   const handlePredefinedQuery = async (queryId) => {
     const query = predefinedQueries.find(q => q.id === queryId);
@@ -72,6 +63,15 @@ const Users = () => {
     if (query.needsDomain && !domainValue && !selectedDomain) {
       setError('Please enter a domain name');
       return;
+    }
+    // Validate domain belongs to the selected forest
+    const domainForValidation = domainValue || (query.needsDomain ? selectedDomain : null);
+    if (domainForValidation) {
+      const forestError = validateDomainForForest(domainForValidation);
+      if (forestError) {
+        setError(forestError);
+        return;
+      }
     }
     if (query.needsLookup && !lockedOutUserInput.trim()) {
       setError('Please enter a user identity (samAccountName/UPN/email)');
@@ -342,184 +342,6 @@ const Users = () => {
 
   // Single user export is handled inline with ExportButton
 
-  const getRiskBadgeClass = (risk) => {
-    switch ((risk || '').toLowerCase()) {
-      case 'high':   return 'risk-high';
-      case 'medium': return 'risk-medium';
-      case 'low':    return 'risk-low';
-      default:       return 'risk-info';
-    }
-  };
-
-  const getExpiryBadgeClass = (status) => {
-    switch (status) {
-      case 'Expired':       return 'disabled';
-      case 'Expiring Soon': return 'risk-medium';
-      case 'Active':        return 'enabled';
-      default:              return '';
-    }
-  };
-
-  const renderPasswordNotRequiredTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>SAM Account</th>
-          <th>Email</th>
-          <th>Enabled</th>
-          <th>Risk</th>
-          <th>Domain</th>
-          <th>Department</th>
-          <th>Employee Type</th>
-          <th>Password Last Set</th>
-          <th>Last Logon</th>
-          <th>Created</th>
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedQueryResults.map((user, i) => (
-          <tr key={i}>
-            <td>{user.Name || user.DisplayName}</td>
-            <td>{user.SamAccountName}</td>
-            <td>{user.Email || '-'}</td>
-            <td>
-              <span className={`status-badge ${user.Enabled ? 'enabled' : 'disabled'}`}>
-                {user.Enabled ? 'Enabled' : 'Disabled'}
-              </span>
-            </td>
-            <td>
-              <span className={`status-badge ${getRiskBadgeClass(user.RiskLevel)}`}>
-                {user.RiskLevel || '-'}
-              </span>
-            </td>
-            <td>{user.Domain || '-'}</td>
-            <td>{user.Department || '-'}</td>
-            <td>{user.EmployeeType || '-'}</td>
-            <td>{formatDate(user.PasswordLastSet)}</td>
-            <td>{formatDate(user.LastLogon)}</td>
-            <td>{formatDate(user.Created)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderNoManagerTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>SAM Account</th>
-          <th>Email</th>
-          <th>Department</th>
-          <th>Title</th>
-          <th>Employee Type</th>
-          <th>Domain</th>
-          <th>Last Logon</th>
-          <th>Created</th>
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedQueryResults.map((user, i) => (
-          <tr key={i}>
-            <td>{user.Name || user.DisplayName}</td>
-            <td>{user.SamAccountName}</td>
-            <td>{user.Email || '-'}</td>
-            <td>{user.Department || '-'}</td>
-            <td>{user.Title || '-'}</td>
-            <td>{user.EmployeeType || '-'}</td>
-            <td>{user.Domain || '-'}</td>
-            <td>{formatDate(user.LastLogon)}</td>
-            <td>{formatDate(user.Created)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderDisabledManagerTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>SAM Account</th>
-          <th>Email</th>
-          <th>Department</th>
-          <th>Domain</th>
-          <th>Manager Name</th>
-          <th>Manager SAM</th>
-          <th>Manager Enabled</th>
-          <th>Last Logon</th>
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedQueryResults.map((user, i) => (
-          <tr key={i}>
-            <td>{user.Name || user.DisplayName}</td>
-            <td>{user.SamAccountName}</td>
-            <td>{user.Email || '-'}</td>
-            <td>{user.Department || '-'}</td>
-            <td>{user.Domain || '-'}</td>
-            <td>{user.ManagerName || '-'}</td>
-            <td>{user.ManagerSam || '-'}</td>
-            <td>
-              <span className="status-badge disabled">Disabled</span>
-            </td>
-            <td>{formatDate(user.LastLogon)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderContractorByTypeTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>SAM Account</th>
-          <th>Email</th>
-          <th>Enabled</th>
-          <th>Employee Type</th>
-          <th>EA6</th>
-          <th>Department</th>
-          <th>Domain</th>
-          <th>Account Expires</th>
-          <th>Days Until Expiry</th>
-          <th>Expiry Status</th>
-          <th>Last Logon</th>
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedQueryResults.map((user, i) => (
-          <tr key={i}>
-            <td>{user.Name || user.DisplayName}</td>
-            <td>{user.SamAccountName}</td>
-            <td>{user.Email || '-'}</td>
-            <td>
-              <span className={`status-badge ${user.Enabled ? 'enabled' : 'disabled'}`}>
-                {user.Enabled ? 'Enabled' : 'Disabled'}
-              </span>
-            </td>
-            <td>{user.EmployeeType || '-'}</td>
-            <td>{user.EA6 || '-'}</td>
-            <td>{user.Department || '-'}</td>
-            <td>{user.Domain || '-'}</td>
-            <td>{formatDate(user.AccountExpires) || 'None'}</td>
-            <td>{user.DaysUntilExpiry !== null && user.DaysUntilExpiry !== undefined ? user.DaysUntilExpiry : '-'}</td>
-            <td>
-              <span className={`status-badge ${getExpiryBadgeClass(user.ExpiryStatus)}`}>
-                {user.ExpiryStatus || 'No Expiration Set'}
-              </span>
-            </td>
-            <td>{formatDate(user.LastLogon)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
   const renderQueryResultsTable = () => {
     if (activeQuery === 'locked-out') {
       const diag = Array.isArray(queryResults) ? queryResults[0] : null;
@@ -577,11 +399,6 @@ const Users = () => {
         </div>
       );
     }
-
-    if (activeQuery === 'passwd-not-required') return renderPasswordNotRequiredTable();
-    if (activeQuery === 'no-manager')          return renderNoManagerTable();
-    if (activeQuery === 'disabled-manager')    return renderDisabledManagerTable();
-    if (activeQuery === 'contractor-by-type')  return renderContractorByTypeTable();
 
     return (
       <table className="data-table">
@@ -713,35 +530,6 @@ const Users = () => {
                   Run
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Identity Governance Queries */}
-      <div className="query-panel card">
-        <h3>Identity Governance</h3>
-        <div className="query-cards" role="list">
-          {governanceQueries.map((q) => (
-            <div
-              key={q.id}
-              className={`query-card ${activeQuery === q.id ? 'active' : ''}`}
-              onClick={() => handlePredefinedQuery(q.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handlePredefinedQuery(q.id);
-                }
-              }}
-              role="button"
-              tabIndex={0}
-              aria-label={`${q.label}: ${q.description}`}
-            >
-              <div className="query-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{q.label}</span>
-                <FavoriteButton page="/users" queryId={q.id} label={q.label} />
-              </div>
-              <div className="query-card-desc">{q.description}</div>
             </div>
           ))}
         </div>

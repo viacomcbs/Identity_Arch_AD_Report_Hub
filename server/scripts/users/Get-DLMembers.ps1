@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$GroupName,
     [int]$Limit = 500
@@ -6,11 +6,12 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     # Search for the group by name, display name, or email
     $Filter = "Name -like '*$GroupName*' -or DisplayName -like '*$GroupName*' -or mail -like '*$GroupName*'"
     
-    $Groups = Get-ADGroup -Filter $Filter -Properties mail, DisplayName, GroupCategory | 
+    $Groups = Get-ADGroup -Filter $Filter -Properties mail, DisplayName, GroupCategory @credParam | 
               Where-Object { $_.GroupCategory -eq "Distribution" }
 
     if (-not $Groups) {
@@ -30,14 +31,14 @@ try {
 
     # Single group found - get members
     $SelectedGroup = $Groups | Select-Object -First 1
-    $GroupObj = Get-ADGroup -Identity $SelectedGroup.DistinguishedName -Properties member
+    $GroupObj = Get-ADGroup -Identity $SelectedGroup.DistinguishedName -Properties member @credParam
     $MemberList = New-Object System.Collections.Generic.List[PSObject]
 
     foreach ($MemberDN in $GroupObj.member) {
         if ($MemberList.Count -ge $Limit) { break }
         
         try {
-            $Object = Get-ADObject -Identity $MemberDN -Properties Name, Title, Department, mail, objectClass
+            $Object = Get-ADObject -Identity $MemberDN -Properties Name, Title, Department, mail, objectClass @credParam
             
             $MemberList.Add([PSCustomObject]@{
                 Name       = $Object.Name

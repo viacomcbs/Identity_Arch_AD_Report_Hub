@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$false)]
     [string]$SearchValue = "",
 
@@ -8,6 +8,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $ServerArgs = @{}
     if ($TargetDomain -and $TargetDomain.Trim() -ne "") {
@@ -26,12 +27,12 @@ try {
         # Targeted lookup for a specific user (samAccountName / UPN / mail)
         $candidates = @()
         try {
-            $u = Get-ADUser @ServerArgs -Identity $sv -Properties DisplayName, EmailAddress, Department, Title, LockedOut, AccountLockoutTime -ErrorAction Stop
+            $u = Get-ADUser @ServerArgs -Identity $sv -Properties DisplayName, EmailAddress, Department, Title, LockedOut, AccountLockoutTime -ErrorAction Stop @credParam
             if ($u) { $candidates = @($u) }
         } catch {
             $escaped = Escape-ADFilterValue $sv
             $Filter = "SamAccountName -eq '$escaped' -or UserPrincipalName -eq '$escaped' -or mail -eq '$escaped'"
-            $candidates = @(Get-ADUser @ServerArgs -Filter $Filter -Properties DisplayName, EmailAddress, Department, Title, LockedOut, AccountLockoutTime -ErrorAction SilentlyContinue)
+            $candidates = @(Get-ADUser @ServerArgs -Filter $Filter -Properties DisplayName, EmailAddress, Department, Title, LockedOut, AccountLockoutTime -ErrorAction SilentlyContinue) @credParam
         }
 
         if ($candidates -and @($candidates).Count -gt 0) {
@@ -42,7 +43,7 @@ try {
     } else {
         # Fetch all locked out users (no limit)
         $Users = Search-ADAccount @ServerArgs -LockedOut -UsersOnly |
-                 Get-ADUser @ServerArgs -Properties DisplayName, EmailAddress, Department, Title, LockedOut, AccountLockoutTime
+                 Get-ADUser @ServerArgs -Properties DisplayName, EmailAddress, Department, Title, LockedOut, AccountLockoutTime @credParam
     }
     
     $Results = foreach ($User in $Users) {

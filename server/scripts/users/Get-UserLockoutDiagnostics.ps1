@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [Alias('SearchValue')]
     [string]$Identity,
@@ -55,6 +55,7 @@ function New-Warning([string]$Message, [string]$Dc = $null) {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     $warnings = New-Object System.Collections.Generic.List[string]
 
@@ -72,11 +73,11 @@ try {
 
     $user = $null
     try {
-        $user = Get-ADUser @ServerArgs -Identity $id -Properties LockedOut, LockoutTime, badPwdCount, LastBadPasswordAttempt, UserPrincipalName, mail -ErrorAction Stop
+        $user = Get-ADUser @ServerArgs -Identity $id -Properties LockedOut, LockoutTime, badPwdCount, LastBadPasswordAttempt, UserPrincipalName, mail -ErrorAction Stop @credParam
     } catch {
         $escaped = Escape-ADFilterValue $id
         $Filter = "SamAccountName -eq '$escaped' -or UserPrincipalName -eq '$escaped' -or mail -eq '$escaped'"
-        $user = Get-ADUser @ServerArgs -Filter $Filter -Properties LockedOut, LockoutTime, badPwdCount, LastBadPasswordAttempt, UserPrincipalName, mail -ErrorAction SilentlyContinue |
+        $user = Get-ADUser @ServerArgs -Filter $Filter -Properties LockedOut, LockoutTime, badPwdCount, LastBadPasswordAttempt, UserPrincipalName, mail -ErrorAction SilentlyContinue @credParam |
                 Select-Object -First 1
     }
 
@@ -114,10 +115,10 @@ try {
     # Determine PDC
     $pdc = $null
     try {
-        $pdc = (Get-ADDomain -Server $domainToUse -ErrorAction Stop).PDCEmulator
+        $pdc = (Get-ADDomain -Server $domainToUse -ErrorAction Stop).PDCEmulator @credParam
     } catch {
         try {
-            $pdc = (Get-ADDomain -ErrorAction Stop).PDCEmulator
+            $pdc = (Get-ADDomain -ErrorAction Stop).PDCEmulator @credParam
         } catch {
             $warnings.Add((New-Warning "Failed to determine PDC emulator: $($_.Exception.Message)"))
         }
@@ -129,7 +130,7 @@ try {
         if ($pdc) { $dcs = @($pdc) }
     } else {
         try {
-            $dcs = @(Get-ADDomainController -Filter * -Server $domainToUse -ErrorAction Stop | Select-Object -ExpandProperty HostName)
+            $dcs = @(Get-ADDomainController -Filter * -Server $domainToUse -ErrorAction Stop @credParam | Select-Object -ExpandProperty HostName)
         } catch {
             $warnings.Add((New-Warning "Failed to list domain controllers: $($_.Exception.Message)"))
             if ($pdc) { $dcs = @($pdc) }

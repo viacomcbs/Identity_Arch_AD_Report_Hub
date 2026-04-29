@@ -8,17 +8,12 @@ import { useSortableData } from '../../utils/useSortableData';
 import { useApp } from '../../context/AppContext';
 
 const ServiceAccounts = () => {
-  const { selectedDomain } = useApp();
+  const { selectedDomain, validateDomainForForest } = useApp();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeQuery, setActiveQuery] = useState(null);
   const [domain, setDomain] = useState('');
-  const [inactiveDomain, setInactiveDomain] = useState('');
-  const [days, setDays] = useState(365);
-  const [inactiveDays, setInactiveDays] = useState(90);
-  const [orphanedDomain, setOrphanedDomain] = useState('');
-  const [orphanedDays, setOrphanedDays] = useState(30);
   
   // Pagination state
   const [pageSize, setPageSize] = useState(25);
@@ -30,11 +25,6 @@ const ServiceAccounts = () => {
   const predefinedQueries = [
     { id: 'all-forest', label: 'All Service Accounts (Forest-Wide)', description: 'All service accounts across the entire AD forest' },
     { id: 'all', label: 'Service Accounts per Domain', description: 'Service accounts for a specific domain', needsDomain: true },
-    { id: 'orphaned', label: 'Orphaned Service Accounts', description: 'Accounts without a manager (forest-wide)' },
-    { id: 'orphaned-recent', label: 'Recent Created - Orphaned Service Accounts per Domain', description: 'Orphaned accounts created in X days (max 90)', needsOrphaned: true },
-    { id: 'inactive', label: 'Inactive Service Accounts', description: 'Service accounts not logged on for X days (per domain)', needsInactive: true },
-    { id: 'pwd-never-expires', label: 'Password Never Expires', description: 'Service accounts with non-expiring passwords — security hygiene risk' },
-    { id: 'interactive-logon', label: 'Interactive Logon Detected', description: 'Service accounts with recent interactive logon activity — potential misuse' },
   ];
 
   const handleQuery = async (queryId) => {
@@ -42,33 +32,22 @@ const ServiceAccounts = () => {
       setError('Please enter a domain name');
       return;
     }
-    if (queryId === 'inactive' && !inactiveDomain.trim() && !selectedDomain) {
-      setError('Please enter a domain name');
-      return;
+    const domainToCheck = queryId === 'all' ? (domain.trim() || selectedDomain) : null;
+    if (domainToCheck) {
+      const forestError = validateDomainForForest(domainToCheck);
+      if (forestError) { setError(forestError); return; }
     }
-    if (queryId === 'orphaned-recent' && !orphanedDomain.trim() && !selectedDomain) {
-      setError('Please enter a domain name');
-      return;
-    }
-    
+
     setLoading(true);
     setError(null);
     setActiveQuery(queryId);
     setCurrentPage(1);
-    
+
     try {
       const params = { query: queryId };
       if (queryId === 'all') params.domain = domain || selectedDomain;
-      if (queryId === 'orphaned-recent') {
-        params.domain = orphanedDomain || selectedDomain;
-        params.days = Math.min(orphanedDays, 90); // Max 90 days
-      }
-      if (queryId === 'inactive') {
-        params.domain = inactiveDomain || selectedDomain;
-        params.days = inactiveDays;
-      }
       if (!params.domain && selectedDomain) params.domain = selectedDomain;
-      
+
       const response = await axios.get('/api/service-accounts', { params });
       setData(response.data.data || []);
     } catch (err) {
@@ -226,7 +205,7 @@ const ServiceAccounts = () => {
             <div
               key={q.id}
               className={`query-card ${activeQuery === q.id ? 'active' : ''}`}
-              onClick={() => !q.needsDomain && !q.needsOrphaned && !q.needsInactive && handleQuery(q.id)}
+              onClick={() => !q.needsDomain && handleQuery(q.id)}
               style={{
                 flex: '0 0 calc(33.33% - 16px)',
                 maxWidth: 'calc(33.33% - 16px)',
@@ -247,54 +226,6 @@ const ServiceAccounts = () => {
                     value={domain}
                     onChange={(e) => setDomain(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleQuery(q.id)}
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={() => handleQuery(q.id)}>
-                    Run
-                  </button>
-                </div>
-              )}
-              
-              {q.needsOrphaned && (
-                <div className="query-input" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="text"
-                    placeholder="Domain (e.g., corp.domain.com)"
-                    value={orphanedDomain}
-                    onChange={(e) => setOrphanedDomain(e.target.value)}
-                    style={{ flex: 2 }}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Days"
-                    value={orphanedDays}
-                    onChange={(e) => setOrphanedDays(Math.min(parseInt(e.target.value) || 0, 90))}
-                    min="1"
-                    max="90"
-                    style={{ width: '80px', flex: 'none' }}
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={() => handleQuery(q.id)}>
-                    Run
-                  </button>
-                </div>
-              )}
-              
-              {q.needsInactive && (
-                <div className="query-input" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="text"
-                    placeholder="Domain (e.g., corp.domain.com)"
-                    value={inactiveDomain}
-                    onChange={(e) => setInactiveDomain(e.target.value)}
-                    style={{ flex: 2 }}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Days"
-                    value={inactiveDays}
-                    onChange={(e) => setInactiveDays(e.target.value)}
-                    min="1"
-                    max="9999"
-                    style={{ width: '80px', flex: 'none' }}
                   />
                   <button className="btn btn-primary btn-sm" onClick={() => handleQuery(q.id)}>
                     Run

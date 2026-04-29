@@ -1,14 +1,15 @@
-param(
+﻿param(
     [int]$Days = 60
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $CutoffDate = (Get-Date).AddDays(-$Days)
     
     # Fetch all computers not logged on in X days (no limit)
-    $Computers = Get-ADComputer -Filter { LastLogonDate -lt $CutoffDate -and Enabled -eq $true } -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated |
+    $Computers = Get-ADComputer -Filter { LastLogonDate -lt $CutoffDate -and Enabled -eq $true } -Properties Name, DNSHostName, OperatingSystem, OperatingSystemVersion, Enabled, LastLogonDate, WhenCreated @credParam |
                  Sort-Object LastLogonDate
     
     $Results = foreach ($Computer in $Computers) {

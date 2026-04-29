@@ -1,4 +1,4 @@
-# Get-PrivilegedGroupChanges.ps1
+﻿# Get-PrivilegedGroupChanges.ps1
 # Queries privileged group membership changes via replication metadata
 param(
     [int]$Days = 30,
@@ -10,6 +10,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     function Get-CnFromMemberDn {
         param([string]$Dn)
@@ -95,7 +96,7 @@ try {
 
         $domainNetbios = $null
         try {
-            $domainNetbios = (Get-ADDomain -Server $DomainDns -ErrorAction Stop).NetBIOSName
+            $domainNetbios = (Get-ADDomain -Server $DomainDns -ErrorAction Stop).NetBIOSName @credParam
         } catch { }
 
         $rows = New-Object System.Collections.Generic.List[object]
@@ -163,9 +164,9 @@ try {
     $forest = $null
     try {
         if ($ForestDomain) {
-            $forest = Get-ADForest -Server $ForestDomain
+            $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null
@@ -194,10 +195,10 @@ try {
             # Prefer querying the PDC emulator for consistent results
             $dc = $null
             try {
-                $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop
+                $domainInfo = Get-ADDomain -Server $domain -ErrorAction Stop @credParam
                 $dc = $domainInfo.PDCEmulator
             } catch {
-                $dc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName
+                $dc = (Get-ADDomainController -DomainName $domain -Discover -ErrorAction Stop).HostName @credParam
             }
 
             foreach ($groupName in $privilegedGroups) {
@@ -218,19 +219,19 @@ try {
 
                         foreach ($n in $candidateNames) {
                             try {
-                                $group = Get-ADGroup -Filter "Name -eq '$n'" -Server $dc -Properties WhenChanged -ErrorAction SilentlyContinue
+                                $group = Get-ADGroup -Filter "Name -eq '$n'" -Server $dc -Properties WhenChanged -ErrorAction SilentlyContinue @credParam
                                 if ($group) { $resolvedGroupName = $group.Name; break }
                             } catch { }
                         }
 
                         if (-not $group) {
                             try {
-                                $group = Get-ADGroup -Filter "Name -like '*Enterprise*System*Admin*'" -Server $dc -Properties WhenChanged -ErrorAction SilentlyContinue | Select-Object -First 1
+                                $group = Get-ADGroup -Filter "Name -like '*Enterprise*System*Admin*'" -Server $dc -Properties WhenChanged -ErrorAction SilentlyContinue @credParam | Select-Object -First 1
                                 if ($group) { $resolvedGroupName = $group.Name }
                             } catch { }
                         }
                     } else {
-                        $group = Get-ADGroup -Identity $groupName -Server $dc -Properties WhenChanged -ErrorAction SilentlyContinue
+                        $group = Get-ADGroup -Identity $groupName -Server $dc -Properties WhenChanged -ErrorAction SilentlyContinue @credParam
                     }
                     if (-not $group) { continue }
 
@@ -238,7 +239,7 @@ try {
                     $memberAttrMeta = $null
                     try {
                         # Preferred (accurate): replication metadata for the 'member' attribute (detects add/remove occurred).
-                        $memberAttrMeta = Get-ADReplicationAttributeMetadata `
+                        $memberAttrMeta = Get-ADReplicationAttributeMetadata ` @credParam
                             -Object $group.DistinguishedName `
                             -Server $dc `
                             -Properties member `
@@ -255,7 +256,7 @@ try {
                             $replMetadata = @()
                             try {
                                 $replMetadata = @(
-                                    Get-ADReplicationAttributeMetadata `
+                                    Get-ADReplicationAttributeMetadata ` @credParam
                                         -Object $group.DistinguishedName `
                                         -Server $dc `
                                         -Properties member `
@@ -267,7 +268,7 @@ try {
                             } catch {
                                 try {
                                     $replMetadata = @(
-                                        Get-ADReplicationAttributeMetadata `
+                                        Get-ADReplicationAttributeMetadata ` @credParam
                                             -Object $group.DistinguishedName `
                                             -Server $dc `
                                             -Properties member `

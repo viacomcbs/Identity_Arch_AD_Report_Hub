@@ -82,13 +82,14 @@ catch {
 }
 
 $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 if ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
 
 $AllTrusts = New-Object System.Collections.Generic.List[PSObject]
 $Now = Get-Date
 
 try {
-    $Forest = Get-ADForest @serverParam -ErrorAction Stop
+    $Forest = Get-ADForest @serverParam @credParam -ErrorAction Stop
     $RootDomain = $Forest.RootDomain
     $AllDomains = if ($TargetDomain) { @($TargetDomain) } else { $Forest.Domains }
 

@@ -7,6 +7,7 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) {
         $serverParam.Server = $TargetDomain
     }
@@ -15,7 +16,7 @@ try {
     $expiryThreshold = $today.AddDays($DaysUntilExpiry)
     
     # Find users with AccountExpirationDate set and expiring within threshold
-    $Users = Get-ADUser -Filter 'AccountExpirationDate -like "*"' @serverParam -Properties `
+    $Users = Get-ADUser -Filter 'AccountExpirationDate -like "*"' @serverParam @credParam -Properties `
         DisplayName, SamAccountName, mail, Title, Department, Enabled, `
         AccountExpirationDate, WhenCreated, LastLogonDate, Manager, `
         EmployeeType, DistinguishedName
@@ -28,7 +29,7 @@ try {
             $managerName = $null
             if ($User.Manager) {
                 try {
-                    $mgr = Get-ADUser -Identity $User.Manager @serverParam -Properties DisplayName -ErrorAction SilentlyContinue
+                    $mgr = Get-ADUser -Identity $User.Manager @serverParam @credParam -Properties DisplayName -ErrorAction SilentlyContinue
                     $managerName = $mgr.DisplayName
                 } catch {}
             }

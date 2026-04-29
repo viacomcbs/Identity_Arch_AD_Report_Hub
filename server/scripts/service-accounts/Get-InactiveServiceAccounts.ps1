@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain,
     
@@ -22,6 +22,7 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -33,7 +34,7 @@ try {
     
     # Get service accounts that haven't logged on in X days
     # Service accounts typically have extensionAttribute6 = "SVC" or similar patterns
-    $ServiceAccounts = Get-ADUser -Filter {
+    $ServiceAccounts = Get-ADUser -Filter { @credParam
         Enabled -eq $true
     } -Server $TargetDomain -Properties `
         DisplayName, SamAccountName, Enabled, Created, Modified, LastLogonDate, `
@@ -60,7 +61,7 @@ try {
         $ManagerStatus = "NOT ASSIGNED"
         if ($_.Manager) {
             try {
-                $ManagerObj = Get-ADUser -Identity $_.Manager -Server $TargetDomain -Properties DisplayName -ErrorAction SilentlyContinue
+                $ManagerObj = Get-ADUser -Identity $_.Manager -Server $TargetDomain -Properties DisplayName -ErrorAction SilentlyContinue @credParam
                 if ($ManagerObj) {
                     $ManagerStatus = $ManagerObj.DisplayName
                 } else {

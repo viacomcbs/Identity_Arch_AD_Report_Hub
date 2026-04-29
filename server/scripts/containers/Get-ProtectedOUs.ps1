@@ -1,9 +1,10 @@
-param(
+﻿param(
     [string]$Server = ""
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Build common parameters for domain targeting
     $CommonParams = @{}
@@ -12,7 +13,7 @@ try {
     }
     
     # Fetch all protected OUs (no limit)
-    $OUs = Get-ADOrganizationalUnit -Filter { ProtectedFromAccidentalDeletion -eq $true } -Properties Description, WhenCreated, WhenChanged, ProtectedFromAccidentalDeletion @CommonParams
+    $OUs = Get-ADOrganizationalUnit -Filter { ProtectedFromAccidentalDeletion -eq $true } -Properties Description, WhenCreated, WhenChanged, ProtectedFromAccidentalDeletion @CommonParams @credParam
     
     $Results = foreach ($OU in $OUs) {
         [PSCustomObject]@{

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$SamAccountName,
     
@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $User = $null
     $FoundDomain = ""
@@ -17,7 +18,7 @@ try {
     # Try to find user in specified domain first
     if ($UserDomain -and $UserDomain.Trim() -ne "") {
         try {
-            $User = Get-ADUser -Identity $SamAccountName -Server $UserDomain -Properties MemberOf, DistinguishedName -ErrorAction Stop
+            $User = Get-ADUser -Identity $SamAccountName -Server $UserDomain -Properties MemberOf, DistinguishedName -ErrorAction Stop @credParam
             $FoundDomain = $UserDomain
         } catch { 
             $User = $null
@@ -27,10 +28,10 @@ try {
     # If not found, search in each domain of the forest
     if (-not $User) {
         try {
-            $Forest = Get-ADForest -ErrorAction Stop
+            $Forest = Get-ADForest -ErrorAction Stop @credParam
             foreach ($Domain in $Forest.Domains) {
                 try {
-                    $User = Get-ADUser -Identity $SamAccountName -Server $Domain -Properties MemberOf, DistinguishedName -ErrorAction Stop
+                    $User = Get-ADUser -Identity $SamAccountName -Server $Domain -Properties MemberOf, DistinguishedName -ErrorAction Stop @credParam
                     if ($User) {
                         $FoundDomain = $Domain
                         break
@@ -42,7 +43,7 @@ try {
         } catch {
             # Forest query failed, try current domain
             try {
-                $User = Get-ADUser -Identity $SamAccountName -Properties MemberOf, DistinguishedName -ErrorAction Stop
+                $User = Get-ADUser -Identity $SamAccountName -Properties MemberOf, DistinguishedName -ErrorAction Stop @credParam
                 $FoundDomain = (Get-ADDomain).DNSRoot
             } catch { }
         }
@@ -76,11 +77,11 @@ try {
                 
                 $Group = $null
                 try {
-                    $Group = Get-ADGroup -Identity $GroupDN -Server $GroupDomain -Properties GroupCategory, GroupScope, mail, Description, ManagedBy -ErrorAction Stop
+                    $Group = Get-ADGroup -Identity $GroupDN -Server $GroupDomain -Properties GroupCategory, GroupScope, mail, Description, ManagedBy -ErrorAction Stop @credParam
                 } catch {
                     # Try without specifying server
                     try {
-                        $Group = Get-ADGroup -Identity $GroupDN -Properties GroupCategory, GroupScope, mail, Description, ManagedBy -ErrorAction SilentlyContinue
+                        $Group = Get-ADGroup -Identity $GroupDN -Properties GroupCategory, GroupScope, mail, Description, ManagedBy -ErrorAction SilentlyContinue @credParam
                     } catch { }
                 }
                 

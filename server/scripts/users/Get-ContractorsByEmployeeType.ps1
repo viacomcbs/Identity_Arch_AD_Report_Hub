@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
@@ -15,10 +15,11 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     $WarningPreference = 'SilentlyContinue'
 
     $anchorDomain = if ($TargetDomain) { $TargetDomain } else { (Get-ADDomain).DNSRoot }
-    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop
+    $forest = Get-ADForest -Server $anchorDomain -ErrorAction Stop @credParam
     $domainsToQuery = if ($TargetDomain) { @($TargetDomain) } else { @($forest.Domains) }
 
     $Results = New-Object System.Collections.Generic.List[PSObject]
@@ -27,7 +28,7 @@ try {
     foreach ($domain in $domainsToQuery) {
         try {
             # All users (enabled and disabled) with a non-empty employeeType
-            $users = Get-ADUser -LDAPFilter '(&(objectClass=user)(employeeType=*))' `
+            $users = Get-ADUser -LDAPFilter '(&(objectClass=user)(employeeType=*))' ` @credParam
                 -Server $domain `
                 -Properties DisplayName, SamAccountName, mail, Enabled, `
                     employeeType, extensionAttribute6, Department, Title, `

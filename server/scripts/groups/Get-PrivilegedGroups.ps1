@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$ForestDomain = "",
     [string]$ForestName = "",
     [string]$PrivilegedGroupsCsv = ""
@@ -28,15 +28,15 @@ function Get-SafeGroupMembers {
     
     $Members = @()
     
-    # Try Get-ADGroupMember first (without -Recursive to avoid referral issues)
+    # Try Get-ADGroupMember first (without -Recursive to avoid referral issues) @credParam
     try {
-        $Members = Get-ADGroupMember -Identity $Group.DistinguishedName -Server $Server -ErrorAction Stop | 
+        $Members = Get-ADGroupMember -Identity $Group.DistinguishedName -Server $Server -ErrorAction Stop @credParam | 
                    Where-Object { $_.objectClass -eq 'user' }
     } catch {
         # If that fails, try querying users directly by memberOf
         try {
             $GroupDN = $Group.DistinguishedName
-            $Members = Get-ADUser -Filter "memberOf -eq '$GroupDN'" -Server $Server -ErrorAction SilentlyContinue
+            $Members = Get-ADUser -Filter "memberOf -eq '$GroupDN'" -Server $Server -ErrorAction SilentlyContinue @credParam
         } catch { }
     }
     
@@ -45,6 +45,7 @@ function Get-SafeGroupMembers {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -57,9 +58,9 @@ try {
     $Forest = $null
     try {
         if ($ForestDomain) {
-            $Forest = Get-ADForest -Server $ForestDomain -ErrorAction Stop
+            $Forest = Get-ADForest -Server $ForestDomain -ErrorAction Stop @credParam
         } else {
-            $Forest = Get-ADForest -ErrorAction Stop
+            $Forest = Get-ADForest -ErrorAction Stop @credParam
         }
     } catch {
         $Forest = $null
@@ -79,12 +80,12 @@ try {
 
     # 1. Get Enterprise Admins from root domain
     try {
-        $EAGroup = Get-ADGroup -Identity "Enterprise Admins" -Server $RootDomain -Properties WhenChanged -ErrorAction Stop
+        $EAGroup = Get-ADGroup -Identity "Enterprise Admins" -Server $RootDomain -Properties WhenChanged -ErrorAction Stop @credParam
         $EAMembers = Get-SafeGroupMembers -Group $EAGroup -Server $RootDomain
         
         foreach ($Member in $EAMembers) {
             try {
-                $User = Get-ADUser -Identity $Member.distinguishedName -Server $RootDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+                $User = Get-ADUser -Identity $Member.distinguishedName -Server $RootDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
                 
                 if ($User) {
                     $AllPrivilegedUsers += [PSCustomObject]@{
@@ -108,12 +109,12 @@ try {
 
     # 2. Get Schema Admins from root domain
     try {
-        $SAGroup = Get-ADGroup -Identity "Schema Admins" -Server $RootDomain -Properties WhenChanged -ErrorAction Stop
+        $SAGroup = Get-ADGroup -Identity "Schema Admins" -Server $RootDomain -Properties WhenChanged -ErrorAction Stop @credParam
         $SAMembers = Get-SafeGroupMembers -Group $SAGroup -Server $RootDomain
         
         foreach ($Member in $SAMembers) {
             try {
-                $User = Get-ADUser -Identity $Member.distinguishedName -Server $RootDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+                $User = Get-ADUser -Identity $Member.distinguishedName -Server $RootDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
                 
                 if ($User) {
                     $AllPrivilegedUsers += [PSCustomObject]@{
@@ -160,7 +161,7 @@ try {
         foreach ($DomainToSearch in $domainsToSearchForESA) {
             foreach ($GroupName in $GroupNames) {
                 try {
-                    $ESAGroup = Get-ADGroup -Filter "Name -eq '$GroupName'" -Server $DomainToSearch -Properties WhenChanged -ErrorAction SilentlyContinue
+                    $ESAGroup = Get-ADGroup -Filter "Name -eq '$GroupName'" -Server $DomainToSearch -Properties WhenChanged -ErrorAction SilentlyContinue @credParam
                     if ($ESAGroup) {
                         $FoundGroupName = $ESAGroup.Name
                         $FoundDomain = $DomainToSearch
@@ -175,7 +176,7 @@ try {
         if (-not $ESAGroup) {
             try {
                 foreach ($DomainToSearch in $domainsToSearchForESA) {
-                    $ESAGroup = Get-ADGroup -Filter "Name -like '*Enterprise*System*Admin*'" -Server $DomainToSearch -Properties WhenChanged -ErrorAction SilentlyContinue | Select-Object -First 1
+                    $ESAGroup = Get-ADGroup -Filter "Name -like '*Enterprise*System*Admin*'" -Server $DomainToSearch -Properties WhenChanged -ErrorAction SilentlyContinue @credParam | Select-Object -First 1
                     if ($ESAGroup) {
                         $FoundGroupName = $ESAGroup.Name
                         $FoundDomain = $DomainToSearch
@@ -193,7 +194,7 @@ try {
             
             foreach ($Member in $ESAMembers) {
                 try {
-                    $User = Get-ADUser -Identity $Member.distinguishedName -Server $FoundDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+                    $User = Get-ADUser -Identity $Member.distinguishedName -Server $FoundDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
                     
                     if ($User) {
                         $AllPrivilegedUsers += [PSCustomObject]@{
@@ -220,13 +221,13 @@ try {
     # 4. Get Domain Admins from ALL domains in forest
     foreach ($DomainName in $Forest.Domains) {
         try {
-            $DAGroup = Get-ADGroup -Identity "Domain Admins" -Server $DomainName -Properties WhenChanged -ErrorAction SilentlyContinue
+            $DAGroup = Get-ADGroup -Identity "Domain Admins" -Server $DomainName -Properties WhenChanged -ErrorAction SilentlyContinue @credParam
             if ($DAGroup) {
                 $DAMembers = Get-SafeGroupMembers -Group $DAGroup -Server $DomainName
                 
                 foreach ($Member in $DAMembers) {
                     try {
-                        $User = Get-ADUser -Identity $Member.distinguishedName -Server $DomainName -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+                        $User = Get-ADUser -Identity $Member.distinguishedName -Server $DomainName -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
                         
                         if ($User) {
                             $AllPrivilegedUsers += [PSCustomObject]@{
@@ -253,13 +254,13 @@ try {
     # 5. Get Built-in Administrators from ALL domains in forest
     foreach ($DomainName in $Forest.Domains) {
         try {
-            $BAGroup = Get-ADGroup -Identity "Administrators" -Server $DomainName -Properties WhenChanged -ErrorAction SilentlyContinue
+            $BAGroup = Get-ADGroup -Identity "Administrators" -Server $DomainName -Properties WhenChanged -ErrorAction SilentlyContinue @credParam
             if ($BAGroup) {
                 $BAMembers = Get-SafeGroupMembers -Group $BAGroup -Server $DomainName
                 
                 foreach ($Member in $BAMembers) {
                     try {
-                        $User = Get-ADUser -Identity $Member.distinguishedName -Server $DomainName -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+                        $User = Get-ADUser -Identity $Member.distinguishedName -Server $DomainName -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
                         
                         if ($User) {
                             $AllPrivilegedUsers += [PSCustomObject]@{

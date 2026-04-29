@@ -7,6 +7,7 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
 
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) {
         $serverParam.Server = $TargetDomain
     }
@@ -15,7 +16,7 @@ try {
 
     $filter = "Enabled -eq `$true -and LastLogonDate -ge '$cutoffDate' -and (SamAccountName -like 'svc*' -or SamAccountName -like 'sa-*' -or SamAccountName -like '*service*' -or Description -like '*service*')"
 
-    $Users = Get-ADUser -Filter $filter @serverParam -ResultPageSize 2000 -ResultSetSize $null -Properties `
+    $Users = Get-ADUser -Filter $filter @serverParam @credParam -ResultPageSize 2000 -ResultSetSize $null -Properties `
         DisplayName, SamAccountName, Enabled, LastLogonDate, LogonCount, `
         PasswordLastSet, PasswordNeverExpires, WhenCreated, Description, `
         Manager, AllowReversiblePasswordEncryption, DistinguishedName

@@ -1,13 +1,14 @@
-param(
+﻿param(
     [int]$Days = 30
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $CutoffDate = (Get-Date).AddDays(-$Days)
     
-    $Contacts = Get-ADObject -Filter "objectClass -eq 'contact' -and WhenCreated -ge '$CutoffDate'" -Properties DisplayName, mail, Description, Company, Department, telephoneNumber, WhenCreated, WhenChanged
+    $Contacts = Get-ADObject -Filter "objectClass -eq 'contact' -and WhenCreated -ge '$CutoffDate'" -Properties DisplayName, mail, Description, Company, Department, telephoneNumber, WhenCreated, WhenChanged @credParam
     
     $Results = foreach ($Contact in $Contacts) {
         [PSCustomObject]@{

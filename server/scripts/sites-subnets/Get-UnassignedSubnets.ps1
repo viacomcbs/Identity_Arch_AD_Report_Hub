@@ -15,10 +15,11 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
     
     # Get all subnets where Site is null or empty (not associated with any site)
-    $Subnets = Get-ADReplicationSubnet -Filter * -Properties Site, Description, Location, WhenCreated, WhenChanged @serverParam
+    $Subnets = Get-ADReplicationSubnet -Filter * -Properties Site, Description, Location, WhenCreated, WhenChanged @serverParam @credParam
     
     $Results = @()
     

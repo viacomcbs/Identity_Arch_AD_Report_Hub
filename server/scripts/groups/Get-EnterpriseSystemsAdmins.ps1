@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$ForestName = "",
     [string]$ForestDomain = ""
 )
@@ -18,6 +18,7 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -36,9 +37,9 @@ try {
     $forest = $null
     try {
         if ($ForestDomain) {
-            $forest = Get-ADForest -Server $ForestDomain -ErrorAction Stop
+            $forest = Get-ADForest -Server $ForestDomain -ErrorAction Stop @credParam
         } else {
-            $forest = Get-ADForest -ErrorAction Stop
+            $forest = Get-ADForest -ErrorAction Stop @credParam
         }
     } catch {
         $forest = $null
@@ -73,15 +74,15 @@ try {
         # Prefer PDC emulator for consistent reads
         $dc = $null
         try {
-            $domainInfo = Get-ADDomain -Server $d -ErrorAction Stop
+            $domainInfo = Get-ADDomain -Server $d -ErrorAction Stop @credParam
             $dc = $domainInfo.PDCEmulator
         } catch {
-            try { $dc = (Get-ADDomainController -DomainName $d -Discover -ErrorAction Stop).HostName } catch { $dc = $d }
+            try { $dc = (Get-ADDomainController -DomainName $d -Discover -ErrorAction Stop).HostName } catch { $dc = $d } @credParam
         }
 
         foreach ($GroupName in $GroupNames) {
             try {
-                $Group = Get-ADGroup -Filter "Name -eq '$GroupName'" -Server $dc -Properties WhenCreated, WhenChanged, Description -ErrorAction SilentlyContinue
+                $Group = Get-ADGroup -Filter "Name -eq '$GroupName'" -Server $dc -Properties WhenCreated, WhenChanged, Description -ErrorAction SilentlyContinue @credParam
                 if ($Group) {
                     $FoundGroupName = $Group.Name
                     $FoundDomain = $d
@@ -93,7 +94,7 @@ try {
 
         if (-not $Group) {
             try {
-                $Group = Get-ADGroup -Filter "Name -like '*Enterprise*System*Admin*'" -Server $dc -Properties WhenCreated, WhenChanged, Description -ErrorAction SilentlyContinue | Select-Object -First 1
+                $Group = Get-ADGroup -Filter "Name -like '*Enterprise*System*Admin*'" -Server $dc -Properties WhenCreated, WhenChanged, Description -ErrorAction SilentlyContinue @credParam | Select-Object -First 1
                 if ($Group) {
                     $FoundGroupName = $Group.Name
                     $FoundDomain = $d
@@ -114,13 +115,13 @@ try {
     # Get members - don't use -Recursive to avoid referral issues
     $Members = @()
     try {
-        $Members = Get-ADGroupMember -Identity $Group.DistinguishedName -Server $ServerToUse -ErrorAction Stop | 
+        $Members = Get-ADGroupMember -Identity $Group.DistinguishedName -Server $ServerToUse -ErrorAction Stop @credParam | 
                    Where-Object { $_.objectClass -eq 'user' }
     } catch {
         # If direct member query fails, try using the group's DN
         try {
             $GroupDN = $Group.DistinguishedName
-            $Members = Get-ADUser -Filter "memberOf -eq '$GroupDN'" -Server $ServerToUse -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+            $Members = Get-ADUser -Filter "memberOf -eq '$GroupDN'" -Server $ServerToUse -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
         } catch { }
     }
     
@@ -133,7 +134,7 @@ try {
                 $User = $Member
             } else {
                 # Get full user details
-                $User = Get-ADUser -Identity $Member.distinguishedName -Server $ServerToUse -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+                $User = Get-ADUser -Identity $Member.distinguishedName -Server $ServerToUse -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
             }
             
             if ($User) {

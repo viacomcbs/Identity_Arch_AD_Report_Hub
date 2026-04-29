@@ -28,11 +28,12 @@ try {
     try {
         # Query AD using the logon server for better reliability
         $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
         if ($logonServer) {
             $serverParam['Server'] = $logonServer
         }
         
-        $adUser = Get-ADUser -Identity $samAccountName @serverParam -Properties `
+        $adUser = Get-ADUser -Identity $samAccountName @serverParam @credParam -Properties `
             DisplayName, GivenName, Surname, EmailAddress, Title, Department, `
             Company, Manager, Office, OfficePhone, MobilePhone, ipPhone, `
             StreetAddress, City, State, St, PostalCode, Country, Co, `
@@ -46,7 +47,7 @@ try {
         $managerName = $null
         if ($adUser.Manager) {
             try {
-                $managerObj = Get-ADUser -Identity $adUser.Manager @serverParam -Properties DisplayName
+                $managerObj = Get-ADUser -Identity $adUser.Manager @serverParam @credParam -Properties DisplayName
                 $managerName = if ($managerObj.DisplayName) { $managerObj.DisplayName } else { $managerObj.Name }
             } catch {
                 # Extract CN from DN for manager
@@ -65,7 +66,7 @@ try {
         $computerDN = $null
         $computerOS = $null
         try {
-            $adComputer = Get-ADComputer -Identity $computerName @serverParam -Properties OperatingSystem, DistinguishedName -ErrorAction SilentlyContinue
+            $adComputer = Get-ADComputer -Identity $computerName @serverParam @credParam -Properties OperatingSystem, DistinguishedName -ErrorAction SilentlyContinue
             if ($adComputer) {
                 $computerDN = $adComputer.DistinguishedName
                 $computerOS = $adComputer.OperatingSystem

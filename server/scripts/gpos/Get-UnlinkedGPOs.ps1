@@ -1,4 +1,4 @@
-param()
+﻿param()
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -19,6 +19,7 @@ try {
 
     try {
         Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     } catch {
         @{
             Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)"
@@ -39,7 +40,7 @@ catch {
 $Results = @()
 
 try {
-    $Forest = Get-ADForest -ErrorAction Stop
+    $Forest = Get-ADForest -ErrorAction Stop @credParam
     
     foreach ($DomainName in $Forest.Domains) {
         try {

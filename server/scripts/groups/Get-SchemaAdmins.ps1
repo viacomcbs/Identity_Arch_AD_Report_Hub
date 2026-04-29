@@ -1,4 +1,4 @@
-param()
+﻿param()
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -15,6 +15,7 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -24,17 +25,17 @@ catch {
 $Results = @()
 
 try {
-    $Forest = Get-ADForest -ErrorAction Stop
+    $Forest = Get-ADForest -ErrorAction Stop @credParam
     $RootDomain = $Forest.RootDomain
 
     # Get Schema Admins group members from root domain
-    $Group = Get-ADGroup -Identity "Schema Admins" -Server $RootDomain -Properties WhenCreated, WhenChanged, Description -ErrorAction Stop
-    $Members = Get-ADGroupMember -Identity $Group -Server $RootDomain -ErrorAction SilentlyContinue | 
+    $Group = Get-ADGroup -Identity "Schema Admins" -Server $RootDomain -Properties WhenCreated, WhenChanged, Description -ErrorAction Stop @credParam
+    $Members = Get-ADGroupMember -Identity $Group -Server $RootDomain -ErrorAction SilentlyContinue @credParam | 
                Where-Object { $_.objectClass -eq 'user' }
     
     foreach ($Member in $Members) {
         try {
-            $User = Get-ADUser -Identity $Member.distinguishedName -Server $RootDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+            $User = Get-ADUser -Identity $Member.distinguishedName -Server $RootDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
             
             if ($User) {
                 $Results += [PSCustomObject]@{

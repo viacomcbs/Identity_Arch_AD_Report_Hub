@@ -1,14 +1,15 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     if ($TargetDomain) {
-        $forest = Get-ADForest -Server $TargetDomain
+        $forest = Get-ADForest -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest
+        $forest = Get-ADForest @credParam
     }
 
     $results = @(

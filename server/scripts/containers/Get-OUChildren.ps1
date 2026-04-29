@@ -1,4 +1,4 @@
-# Get-OUChildren.ps1
+﻿# Get-OUChildren.ps1
 # Returns users, groups, and computers in a specific OU (by DN)
 param(
     [Parameter(Mandatory=$true)]
@@ -8,6 +8,7 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     $results = @{
         Users = @()
@@ -19,7 +20,7 @@ try {
     if ($Server) { $getADParams.Server = $Server }
 
     # Get users in this OU (one level only)
-    $users = Get-ADUser -SearchBase $DN -SearchScope OneLevel -Filter * -Properties DisplayName, mail, Department, Enabled @getADParams
+    $users = Get-ADUser -SearchBase $DN -SearchScope OneLevel -Filter * -Properties DisplayName, mail, Department, Enabled @getADParams @credParam
     $results.Users = @($users | ForEach-Object {
         [PSCustomObject]@{
             Name = $_.DisplayName
@@ -31,7 +32,7 @@ try {
     })
 
     # Get groups in this OU (one level only)
-    $groups = Get-ADGroup -SearchBase $DN -SearchScope OneLevel -Filter * -Properties Description, GroupCategory, GroupScope @getADParams
+    $groups = Get-ADGroup -SearchBase $DN -SearchScope OneLevel -Filter * -Properties Description, GroupCategory, GroupScope @getADParams @credParam
     $results.Groups = @($groups | ForEach-Object {
         [PSCustomObject]@{
             Name = $_.Name
@@ -42,7 +43,7 @@ try {
     })
 
     # Get computers in this OU (one level only)
-    $computers = Get-ADComputer -SearchBase $DN -SearchScope OneLevel -Filter * -Properties OperatingSystem, Enabled @getADParams
+    $computers = Get-ADComputer -SearchBase $DN -SearchScope OneLevel -Filter * -Properties OperatingSystem, Enabled @getADParams @credParam
     $results.Computers = @($computers | ForEach-Object {
         [PSCustomObject]@{
             Name = $_.Name

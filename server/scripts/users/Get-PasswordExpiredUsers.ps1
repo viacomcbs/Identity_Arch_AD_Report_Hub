@@ -1,11 +1,12 @@
-param()
+﻿param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     # Fetch all users with expired passwords (no limit)
     $Users = Search-ADAccount -PasswordExpired -UsersOnly |
-             Get-ADUser -Properties DisplayName, EmailAddress, Department, Title, PasswordLastSet, PasswordExpired
+             Get-ADUser -Properties DisplayName, EmailAddress, Department, Title, PasswordLastSet, PasswordExpired @credParam
     
     $Results = foreach ($User in $Users) {
         [PSCustomObject]@{

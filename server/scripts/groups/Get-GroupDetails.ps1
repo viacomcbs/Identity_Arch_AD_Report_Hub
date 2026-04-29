@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$GroupName,
 
@@ -8,13 +8,14 @@ param(
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
     $ServerArgs = @{}
     if ($TargetDomain -and $TargetDomain.Trim() -ne "") {
         $ServerArgs.Server = $TargetDomain.Trim()
     }
 
-    $Group = Get-ADGroup @ServerArgs -Identity $GroupName -Properties *
+    $Group = Get-ADGroup @ServerArgs -Identity $GroupName -Properties * @credParam
     
     if ($null -eq $Group) {
         @{ Error = "Group not found" } | ConvertTo-Json

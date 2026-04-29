@@ -19,13 +19,14 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
 
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
 
     # Get all site links with all properties
     try {
-        $siteLinks = Get-ADReplicationSiteLink -Filter * -Properties * @serverParam -ErrorAction Stop
+        $siteLinks = Get-ADReplicationSiteLink -Filter * -Properties * @serverParam @credParam -ErrorAction Stop
     } catch {
-        $siteLinks = Get-ADReplicationSiteLink -Filter * @serverParam -ErrorAction Stop
+        $siteLinks = Get-ADReplicationSiteLink -Filter * @serverParam @credParam -ErrorAction Stop
     }
 
     $Results = foreach ($link in $siteLinks) {

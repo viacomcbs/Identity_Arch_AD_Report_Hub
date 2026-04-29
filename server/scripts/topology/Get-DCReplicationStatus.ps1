@@ -1,27 +1,28 @@
-param(
+﻿param(
     [string]$TargetDomain
 )
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
     $results = @()
 
     # Get all domain controllers
     if ($TargetDomain) {
-        $forest = Get-ADForest -Server $TargetDomain
+        $forest = Get-ADForest -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest
+        $forest = Get-ADForest @credParam
     }
     
     foreach ($domainName in $forest.Domains) {
         try {
-            $dcs = Get-ADDomainController -Filter * -Server $domainName -ErrorAction SilentlyContinue
+            $dcs = Get-ADDomainController -Filter * -Server $domainName -ErrorAction SilentlyContinue @credParam
             
             foreach ($dc in $dcs) {
                 try {
                     # Get replication partners and status
-                    $replPartners = Get-ADReplicationPartnerMetadata -Target $dc.HostName -ErrorAction SilentlyContinue
+                    $replPartners = Get-ADReplicationPartnerMetadata -Target $dc.HostName -ErrorAction SilentlyContinue @credParam
                     
                     if ($replPartners) {
                         foreach ($partner in $replPartners) {

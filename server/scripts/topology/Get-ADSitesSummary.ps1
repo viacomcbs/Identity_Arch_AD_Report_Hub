@@ -25,6 +25,7 @@ try {
     } catch { $forest = $null }
 
     $serverParam = @{}
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     if ($TargetDomain) { $serverParam['Server'] = $TargetDomain }
 
     $domainsToQuery = @()
@@ -35,10 +36,10 @@ try {
     }
 
     # Sites (forest-wide, config partition)
-    $sites = Get-ADReplicationSite -Filter * -Properties Description,WhenCreated,WhenChanged @serverParam
+    $sites = Get-ADReplicationSite -Filter * -Properties Description,WhenCreated,WhenChanged @serverParam @credParam
 
     # Subnets (forest-wide, config partition)
-    $subnets = Get-ADReplicationSubnet -Filter * -Properties Site @serverParam
+    $subnets = Get-ADReplicationSubnet -Filter * -Properties Site @serverParam @credParam
     $subnetCountsBySite = @{}
     foreach ($sn in @($subnets)) {
         $siteName = Get-SiteName $sn.Site
@@ -62,7 +63,7 @@ try {
     }
 
     # Site links (forest-wide, config partition)
-    $siteLinks = Get-ADReplicationSiteLink -Filter * -Properties * @serverParam
+    $siteLinks = Get-ADReplicationSiteLink -Filter * -Properties * @serverParam @credParam
     $siteLinkCountsBySite = @{}
     $linkedSitesBySite = @{} # site -> HashSet(otherSites)
 

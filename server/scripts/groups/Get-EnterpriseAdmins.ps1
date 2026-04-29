@@ -1,4 +1,4 @@
-param()
+﻿param()
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -15,6 +15,7 @@ function Format-DateForJSON {
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 }
 catch {
     @{ Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)" } | ConvertTo-Json
@@ -24,28 +25,28 @@ catch {
 $Results = @()
 
 try {
-    $Forest = Get-ADForest -ErrorAction Stop
+    $Forest = Get-ADForest -ErrorAction Stop @credParam
     $RootDomain = $Forest.RootDomain
     
     # Get Enterprise Admins group from root domain
-    $Group = Get-ADGroup -Identity "Enterprise Admins" -Server $RootDomain -Properties WhenCreated, WhenChanged, Description -ErrorAction Stop
+    $Group = Get-ADGroup -Identity "Enterprise Admins" -Server $RootDomain -Properties WhenCreated, WhenChanged, Description -ErrorAction Stop @credParam
     
     # Get members without -Recursive to avoid referral issues
     $Members = @()
     try {
-        $Members = Get-ADGroupMember -Identity $Group.DistinguishedName -Server $RootDomain -ErrorAction Stop | 
+        $Members = Get-ADGroupMember -Identity $Group.DistinguishedName -Server $RootDomain -ErrorAction Stop @credParam | 
                    Where-Object { $_.objectClass -eq 'user' }
     } catch {
         # Fallback: query users by memberOf
         try {
             $GroupDN = $Group.DistinguishedName
-            $Members = Get-ADUser -Filter "memberOf -eq '$GroupDN'" -Server $RootDomain -ErrorAction SilentlyContinue
+            $Members = Get-ADUser -Filter "memberOf -eq '$GroupDN'" -Server $RootDomain -ErrorAction SilentlyContinue @credParam
         } catch { }
     }
     
     foreach ($Member in $Members) {
         try {
-            $User = Get-ADUser -Identity $Member.distinguishedName -Server $RootDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue
+            $User = Get-ADUser -Identity $Member.distinguishedName -Server $RootDomain -Properties DisplayName, EmailAddress, Title, Department, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
             
             if ($User) {
                 $Results += [PSCustomObject]@{

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory=$true)]
     [string]$GPOName
 )
@@ -20,6 +20,7 @@ try {
 
     try {
         Import-Module ActiveDirectory -ErrorAction Stop
+    $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     } catch {
         @{
             Error = "Failed to load ActiveDirectory module: $($_.Exception.Message)"
@@ -40,13 +41,13 @@ try {
     }
     
     # Get all OUs and domain
-    $Domain = Get-ADDomain
-    $OUs = Get-ADOrganizationalUnit -Filter * -Properties gpLink
+    $Domain = Get-ADDomain @credParam
+    $OUs = Get-ADOrganizationalUnit -Filter * -Properties gpLink @credParam
     
     $Links = @()
     
     # Check domain level
-    $DomainGpLink = (Get-ADObject -Identity $Domain.DistinguishedName -Properties gpLink).gpLink
+    $DomainGpLink = (Get-ADObject -Identity $Domain.DistinguishedName -Properties gpLink).gpLink @credParam
     if ($DomainGpLink -match $GPO.Id) {
         $Links += [PSCustomObject]@{
             Target = $Domain.DistinguishedName

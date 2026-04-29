@@ -137,13 +137,18 @@ function fixUnescapedQuotes(jsonStr) {
 }
 
 /**
- * Execute a PowerShell script and return JSON results
- * @param {string} scriptName - Name of the script file (in scripts folder)
- * @param {object} args - Arguments to pass to the script
- * @param {string} subfolder - Optional subfolder within scripts (e.g., 'users', 'groups')
- * @returns {Promise<object>} - Parsed JSON result
+ * Execute a PowerShell script and return JSON results.
+ *
+ * When `credentials` is provided ({ username, password }), the script is invoked
+ * via a `-Command` wrapper that pre-sets `$global:PSADCredential` so every script
+ * can optionally splat it into AD cmdlet calls without requiring per-script changes.
+ *
+ * @param {string} scriptName  - Script filename (inside scripts/<subfolder>)
+ * @param {object} args        - Named parameters to pass to the script
+ * @param {string} subfolder   - Subfolder within /scripts (e.g. 'users')
+ * @param {object} [credentials] - Optional { username, password } from session
  */
-async function runPowerShell(scriptName, args = {}, subfolder = '') {
+async function runPowerShell(scriptName, args = {}, subfolder = '', credentials = null) {
   const scriptsDir = path.join(__dirname, '../scripts', subfolder);
   const scriptPath = path.join(scriptsDir, scriptName);
 
@@ -157,23 +162,36 @@ async function runPowerShell(scriptName, args = {}, subfolder = '') {
     return lines.length ? `\n\nRemediation:\n${lines.join('\n')}` : '';
   };
 
-  // Build argument list
-  const psArgs = [
-    '-NoProfile',
-    '-ExecutionPolicy', 'Bypass',
-    '-File', scriptPath
-  ];
+  let psArgs;
 
-  // Add script arguments (boolean true => PowerShell switch with no value)
-  Object.entries(args).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === '') return;
-    if (value === false) return;
-    if (value === true) {
-      psArgs.push(`-${key}`);
-      return;
-    }
-    psArgs.push(`-${key}`, String(value));
-  });
+  if (credentials && credentials.username && credentials.password) {
+    // Build named-parameter hash for splatting so special chars are handled correctly
+    const argPairs = Object.entries(args)
+      .filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== false)
+      .map(([k, v]) => v === true ? `-${k}` : `-${k} '${String(v).replace(/'/g, "''")}'`)
+      .join(' ');
+
+    // Escape credentials for single-quoted PS string (single-quote → '')
+    const safeUser = credentials.username.replace(/'/g, "''");
+    const safePass = credentials.password.replace(/'/g, "''");
+
+    const command = [
+      `$_pw   = ConvertTo-SecureString '${safePass}' -AsPlainText -Force`,
+      `$global:PSADCredential = New-Object System.Management.Automation.PSCredential('${safeUser}', $_pw)`,
+      `& '${scriptPath.replace(/'/g, "''")}' ${argPairs}`,
+    ].join('; ');
+
+    psArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command];
+  } else {
+    // No credentials — use standard -File invocation
+    psArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath];
+    Object.entries(args).forEach(([key, value]) => {
+      if (value === undefined || value === null || value === '') return;
+      if (value === false) return;
+      if (value === true) { psArgs.push(`-${key}`); return; }
+      psArgs.push(`-${key}`, String(value));
+    });
+  }
 
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
