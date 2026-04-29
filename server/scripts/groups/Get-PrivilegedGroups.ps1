@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$ForestDomain = "",
     [string]$ForestName = "",
     [string]$PrivilegedGroupsCsv = ""
@@ -28,7 +28,7 @@ function Get-SafeGroupMembers {
     
     $Members = @()
     
-    # Try Get-ADGroupMember first (without -Recursive to avoid referral issues) @credParam
+    # Try Get-ADGroupMember first (without -Recursive to avoid referral issues @credParam)
     try {
         $Members = Get-ADGroupMember -Identity $Group.DistinguishedName -Server $Server -ErrorAction Stop @credParam | 
                    Where-Object { $_.objectClass -eq 'user' }
