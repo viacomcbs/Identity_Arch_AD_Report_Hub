@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)]
     [string]$LDAPFilter,
     [string]$ObjectTypes = "user,computer,group",
@@ -36,7 +36,7 @@ try {
     
     # Search Users - filter already includes objectClass from query builder
     if ($Types -contains "user") {
-        $AllUsers = @(Get-ADUser -LDAPFilter $LDAPFilter -Properties DisplayName, mail, Department, Enabled -ErrorAction SilentlyContinue) @credParam
+        $AllUsers = @(Get-ADUser -LDAPFilter $LDAPFilter -Properties DisplayName, mail, Department, Enabled -ErrorAction SilentlyContinue @credParam)
         $Results.Pagination.TotalUsers = $AllUsers.Count
         
         $PagedUsers = $AllUsers | Select-Object -Skip $Skip -First $PageSize
@@ -54,7 +54,7 @@ try {
     
     # Search Computers
     if ($Types -contains "computer") {
-        $AllComputers = @(Get-ADComputer -LDAPFilter $LDAPFilter -Properties OperatingSystem, Enabled -ErrorAction SilentlyContinue) @credParam
+        $AllComputers = @(Get-ADComputer -LDAPFilter $LDAPFilter -Properties OperatingSystem, Enabled -ErrorAction SilentlyContinue @credParam)
         $Results.Pagination.TotalComputers = $AllComputers.Count
         
         $PagedComputers = $AllComputers | Select-Object -Skip $Skip -First $PageSize
@@ -70,7 +70,7 @@ try {
     
     # Search Groups
     if ($Types -contains "group") {
-        $AllGroups = @(Get-ADGroup -LDAPFilter $LDAPFilter -Properties GroupCategory, mail -ErrorAction SilentlyContinue) @credParam
+        $AllGroups = @(Get-ADGroup -LDAPFilter $LDAPFilter -Properties GroupCategory, mail -ErrorAction SilentlyContinue @credParam)
         $Results.Pagination.TotalGroups = $AllGroups.Count
         
         $PagedGroups = $AllGroups | Select-Object -Skip $Skip -First $PageSize

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { runPowerShell } = require('../utils/powershell');
+const dcCountCache = require('../utils/dcCountCache');
 
 // Predefined queries for Active Directory Reports tab
 const predefinedQueries = {
@@ -54,19 +55,40 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/domain-controllers/count - Lightweight DC count for a forest
-router.get('/count', async (req, res) => {
-  try {
-    const { domain } = req.query;
-    const args = {};
-    if (domain) args.ForestDomain = domain;
+// GET /api/domain-controllers/count - DC count for a forest
+//
+// Always responds immediately from the in-memory cache (pre-seeded with
+// confirmed production values: 238 Viacom, 60 CBS).  A background refresh
+// fires when the cache is stale, so the next request gets a live value.
+// If the live query fails (e.g. access-denied due to no forest trust) the
+// cached/static value is silently retained — the endpoint never returns null.
+router.get('/count', (req, res) => {
+  const { domain } = req.query;
+  const cached = dcCountCache.get(domain);
+  const source  = dcCountCache.source(domain);
 
-    const result = await runPowerShell('Get-AllDomainControllers.ps1', args, 'domain-controllers');
-    const data = Array.isArray(result.data) ? result.data : (result.data ? [result.data] : []);
-    res.json({ count: data.length, domain: domain || null });
-  } catch (error) {
-    console.error('DC count error:', error);
-    res.status(500).json({ error: error.message, count: null });
+  // Respond immediately — no waiting for PowerShell
+  res.json({ count: cached, domain: domain || null, source });
+
+  // Fire background refresh if stale and not already in progress
+  if (dcCountCache.isStale(domain) && !dcCountCache.isRefreshing(domain)) {
+    dcCountCache.markRefreshing(domain);
+    const args = domain ? { ForestDomain: domain } : {};
+    runPowerShell('Get-AllDomainControllers.ps1', args, 'domain-controllers')
+      .then(result => {
+        const data = Array.isArray(result.data)
+          ? result.data
+          : (result.data ? [result.data] : []);
+        if (data.length > 0) {
+          dcCountCache.set(domain, data.length);
+        }
+      })
+      .catch(() => {
+        // Access denied or PowerShell error — retain existing cache value silently
+      })
+      .finally(() => {
+        dcCountCache.markDone(domain);
+      });
   }
 });
 

@@ -1,50 +1,61 @@
 @echo off
-:: AD Report Hub - Start with Current User Authentication
-:: Uses the logged-in Windows user's credentials (no admin required)
+setlocal
 
-echo.
-echo ============================================
-echo    AD Report Hub - Starting...
-echo ============================================
-echo.
-echo Using current Windows authentication: %USERNAME%@%USERDOMAIN%
-echo.
+:: ============================================================
+::  AD Report Hub - Start
+::  Double-click or run from command prompt.
+::  Press Ctrl+C in this window to stop.
+:: ============================================================
 
 cd /d "%~dp0"
 
-:: Check if Node.js is installed
+echo.
+echo ============================================================
+echo    AD Report Hub - Starting
+echo ============================================================
+echo.
+
+:: Check Node.js
 where node >nul 2>&1
-if %errorLevel% neq 0 (
+if errorlevel 1 (
     echo [ERROR] Node.js is not installed or not in PATH.
-    echo Please install Node.js from https://nodejs.org
+    echo         Download from https://nodejs.org
+    echo.
     pause
     exit /b 1
 )
 
-:: Check if node_modules exists
+:: Auto-install dependencies if missing
 if not exist "node_modules" (
-    echo Installing dependencies...
+    echo [INFO] First run detected - installing dependencies...
+    echo        This may take a few minutes.
+    echo.
     call npm install
-    if %errorLevel% neq 0 (
-        echo [ERROR] Failed to install dependencies.
+    if errorlevel 1 (
+        echo [ERROR] Dependency install failed.
+        echo         Try running as Administrator.
+        echo.
         pause
         exit /b 1
     )
+    echo.
 )
 
+:: Create logs folder if it doesn't exist
+if not exist "logs" mkdir logs
+
+echo  Frontend : http://localhost:3000
+echo  Backend  : http://localhost:5000
+echo  User     : %USERNAME%@%USERDOMAIN%
 echo.
-echo Starting AD Report Hub...
+echo  Press Ctrl+C to stop both servers.
 echo.
-echo Frontend: http://localhost:3000
-echo Backend:  http://localhost:5000
-echo.
-echo NOTE: Reports will use your current Windows credentials.
-echo       Make sure you have appropriate AD read permissions.
-echo.
-echo Press Ctrl+C to stop the server.
+echo ============================================================
 echo.
 
-:: Start the application
 call npm start
 
+echo.
+echo [INFO] Application stopped.
 pause
+endlocal

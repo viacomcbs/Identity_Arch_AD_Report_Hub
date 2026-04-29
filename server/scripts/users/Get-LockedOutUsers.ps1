@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$false)]
     [string]$SearchValue = "",
 
@@ -32,7 +32,7 @@ try {
         } catch {
             $escaped = Escape-ADFilterValue $sv
             $Filter = "SamAccountName -eq '$escaped' -or UserPrincipalName -eq '$escaped' -or mail -eq '$escaped'"
-            $candidates = @(Get-ADUser @ServerArgs -Filter $Filter -Properties DisplayName, EmailAddress, Department, Title, LockedOut, AccountLockoutTime -ErrorAction SilentlyContinue) @credParam
+            $candidates = @(Get-ADUser @ServerArgs -Filter $Filter -Properties DisplayName, EmailAddress, Department, Title, LockedOut, AccountLockoutTime -ErrorAction SilentlyContinue @credParam)
         }
 
         if ($candidates -and @($candidates).Count -gt 0) {

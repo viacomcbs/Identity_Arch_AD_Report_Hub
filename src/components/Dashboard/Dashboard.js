@@ -144,47 +144,50 @@ const WHY_ITEMS = [
   },
 ];
 
+// Build the static DC count map from FOREST_META so we always have a
+// number to show from the very first render — no loading spinner needed.
+const STATIC_DC_COUNTS = Object.fromEntries(
+  Object.entries(FOREST_META).map(([root, meta]) => {
+    const stat = meta.stats?.find(s => s.key === 'dc');
+    return [root, stat ? parseInt(stat.value, 10) : 0];
+  })
+);
+
 // ─── Component ─────────────────────────────────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
-  const [dcCounts, setDcCounts] = useState({});
-  const [dcLoading, setDcLoading] = useState(false);
+  // Pre-seed with known static values so the page shows numbers immediately
+  const [dcCounts, setDcCounts] = useState(STATIC_DC_COUNTS);
   const { forestData, forestLoading } = useApp();
 
   const forests = forestData?.forests || [];
 
-  // Fetch live DC counts for all configured forests
+  // Fetch live DC counts from the server cache — returns instantly, updates
+  // in the background if the server cache is stale. Replace our local state
+  // only when the API returns a positive live count.
   useEffect(() => {
     if (!forests.length) return;
-    setDcLoading(true);
     Promise.all(
       forests.map(f =>
         fetch(`/api/domain-controllers/count?domain=${encodeURIComponent(f.root)}`)
           .then(r => r.json())
-          .then(d => ({ root: f.root, count: typeof d.count === 'number' ? d.count : null }))
+          .then(d => ({ root: f.root, count: typeof d.count === 'number' && d.count > 0 ? d.count : null }))
           .catch(() => ({ root: f.root, count: null }))
       )
     ).then(results => {
-      const map = {};
-      results.forEach(r => { map[r.root] = r.count; });
-      setDcCounts(map);
-      setDcLoading(false);
+      setDcCounts(prev => {
+        const next = { ...prev };
+        results.forEach(r => { if (r.count !== null) next[r.root] = r.count; });
+        return next;
+      });
     });
   }, [forests.length]); // eslint-disable-line
 
-  // Sum live counts; fall back to the static values from FOREST_META when API hasn't resolved yet
-  const staticDCTotal = forests.reduce((sum, f) => {
-    const stat = FOREST_META[f.root]?.stats?.find(s => s.key === 'dc');
-    return sum + (stat?.value ? parseInt(stat.value, 10) : 0);
-  }, 0);
-  const liveDCTotal = Object.values(dcCounts).reduce((sum, v) => sum + (v || 0), 0);
-  const totalDCs = liveDCTotal > 0 ? liveDCTotal : staticDCTotal;
+  const totalDCs = Object.values(dcCounts).reduce((sum, v) => sum + (v || 0), 0);
 
   const enterpriseStats = BASE_ENTERPRISE_STATS.map(s => {
-    if (s.key === 'dcs') {
-      return { ...s, value: dcLoading ? '…' : String(totalDCs || '—') };
-    }
+    if (s.key === 'dcs') return { ...s, value: String(totalDCs || '—') };
     return s;
   });
 
@@ -277,7 +280,7 @@ const Dashboard = () => {
                   <div className="db-env-kpi-row">
                     {meta.stats.map((s) => {
                       const val = s.key === 'dc'
-                        ? (dcLoading ? '…' : (dcCounts[forest.root] != null ? String(dcCounts[forest.root]) : s.value))
+                        ? String(dcCounts[forest.root] ?? parseInt(s.value, 10))
                         : s.value;
                       return (
                         <div key={s.label} className="db-env-kpi">
