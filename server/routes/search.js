@@ -43,7 +43,10 @@ router.get('/', async (req, res) => {
         PageSize: parseInt(pageSize),
         Page: parseInt(page)
       }, '');
-      return res.json(result);
+      // runPowerShell wraps every result in an array; Global-Search scripts return
+      // a single structured object {Users, Computers, Groups, Pagination} — unwrap it.
+      const searchData = Array.isArray(result.data) ? result.data[0] : result.data;
+      return res.json({ data: searchData });
     }
 
     if (!q) {
@@ -57,7 +60,8 @@ router.get('/', async (req, res) => {
       Page: parseInt(page)
     }, '');
 
-    res.json(result);
+    const searchData = Array.isArray(result.data) ? result.data[0] : result.data;
+    res.json({ data: searchData });
   } catch (error) {
     console.error('Global search error:', error);
     res.status(500).json({ error: error.message });
