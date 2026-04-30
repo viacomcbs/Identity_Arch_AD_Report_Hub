@@ -35,10 +35,10 @@ const CATEGORIES = [
     label: 'Infrastructure',
     items: [
       { label: 'Domain Controllers', path: '/domain-controllers' },
-      { label: 'DC Health',          path: '/domain-controllers' },
-      { label: 'Replication Status', path: '/sites-subnets' },
       { label: 'Sites & Subnets',    path: '/sites-subnets' },
-      { label: 'DC Services',        path: '/domain-controllers' },
+      { label: 'Replication Status', path: '/sites-subnets' },
+      { label: 'AD Topology',        path: '/topology' },
+      { label: 'FSMO Roles',         path: '/topology' },
     ],
   },
   {
@@ -56,11 +56,11 @@ const CATEGORIES = [
     id: 'governance',
     label: 'Governance',
     items: [
-      { label: 'GPO Links',    path: '/governance' },
-      { label: 'Trust Map',    path: '/topology' },
-      { label: 'FSMO Roles',   path: '/topology' },
-      { label: 'Group Policy', path: '/gpos' },
-      { label: 'OU Structure', path: '/containers' },
+      { label: 'Password Policy',     path: '/governance' },
+      { label: 'No Manager',          path: '/governance' },
+      { label: 'Service Accounts',    path: '/governance' },
+      { label: 'Group Policy',        path: '/gpos' },
+      { label: 'OU Structure',        path: '/containers' },
     ],
   },
 ];

@@ -53,8 +53,8 @@
 /* Query cards grid */
 .gov-query-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
 }
 
 .gov-query-card {
@@ -62,7 +62,7 @@
   border: 1px solid var(--border-color);
   border-left: 3px solid transparent;
   border-radius: 6px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
