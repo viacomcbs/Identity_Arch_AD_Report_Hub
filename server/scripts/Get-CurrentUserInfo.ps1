@@ -41,7 +41,7 @@ try {
             WhenCreated, LastLogonDate, PasswordLastSet, PasswordExpired, `
             Enabled, LockedOut, AccountExpirationDate, `
             DistinguishedName, UserPrincipalName, MemberOf, `
-            physicalDeliveryOfficeName, l, c
+            physicalDeliveryOfficeName, l, c, thumbnailPhoto
         
         # Get manager name if exists
         $managerName = $null
@@ -81,23 +81,31 @@ try {
         $countryValue = if ($adUser.Country) { $adUser.Country } elseif ($adUser.Co) { $adUser.Co } elseif ($adUser.c) { $adUser.c } else { $null }
         $officeValue = if ($adUser.Office) { $adUser.Office } elseif ($adUser.physicalDeliveryOfficeName) { $adUser.physicalDeliveryOfficeName } else { $null }
         $phoneValue = if ($adUser.OfficePhone) { $adUser.OfficePhone } elseif ($adUser.ipPhone) { $adUser.ipPhone } else { $null }
+
+        # Encode thumbnail photo as base64 if present
+        $photoBase64 = $null
+        if ($adUser.thumbnailPhoto -and $adUser.thumbnailPhoto.Length -gt 0) {
+            $photoBase64 = [Convert]::ToBase64String($adUser.thumbnailPhoto)
+        }
         
         $result = [PSCustomObject]@{
             # Basic Info
-            username = $samAccountName
+            username    = $samAccountName
+            fullName    = $userName
             displayName = if ($adUser.DisplayName) { $adUser.DisplayName } elseif ($adUser.GivenName -or $adUser.Surname) { "$($adUser.GivenName) $($adUser.Surname)".Trim() } else { $samAccountName }
-            firstName = $adUser.GivenName
-            lastName = $adUser.Surname
-            domain = $userDomain
-            domainDns = $userDnsDomain
-            email = $adUser.EmailAddress
-            upn = $adUser.UserPrincipalName
-            
+            firstName   = $adUser.GivenName
+            lastName    = $adUser.Surname
+            domain      = $userDomain
+            domainDns   = $userDnsDomain
+            email       = $adUser.EmailAddress
+            upn         = $adUser.UserPrincipalName
+            photo       = $photoBase64
+
             # Job Info
-            title = $adUser.Title
+            title      = $adUser.Title
             department = $adUser.Department
-            company = $adUser.Company
-            manager = $managerName
+            company    = $adUser.Company
+            manager    = $managerName
             employeeId = if ($adUser.EmployeeID) { $adUser.EmployeeID } elseif ($adUser.EmployeeNumber) { $adUser.EmployeeNumber } else { $null }
             description = $adUser.Description
             
@@ -114,11 +122,10 @@ try {
             country = $countryValue
             
             # Account Info
-            computer = $computerName
-            computerDN = $computerDN
-            computerOS = $computerOS
-            logonServer = $logonServer
-            fullName = $userName
+            computer          = $computerName
+            computerDN        = $computerDN
+            computerOS        = $computerOS
+            logonServer       = $logonServer
             distinguishedName = $adUser.DistinguishedName
             enabled = $adUser.Enabled
             lockedOut = $adUser.LockedOut
