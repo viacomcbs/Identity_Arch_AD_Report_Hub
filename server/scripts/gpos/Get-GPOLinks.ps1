@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)]
     [string]$GPOName
 )
@@ -41,7 +41,7 @@ try {
     }
     
     # Get all OUs and domain
-    $Domain = Get-ADDomain @credParam
+    $Domain = Get-ADDomain @credParam
     $OUs = Get-ADOrganizationalUnit -Filter * -Properties gpLink @credParam
     
     $Links = @()

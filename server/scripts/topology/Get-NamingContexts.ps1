@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -10,8 +10,8 @@ try {
         $forest = Get-ADForest -Server $TargetDomain @credParam
         $rootDSE = Get-ADRootDSE -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest @credParam
-        $rootDSE = Get-ADRootDSE @credParam
+        $forest = Get-ADForest @credParam
+        $rootDSE = Get-ADRootDSE @credParam
     }
 
     $results = @()

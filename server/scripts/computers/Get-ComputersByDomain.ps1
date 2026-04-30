@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -17,9 +17,7 @@ catch {
 $Results = @()
 
 try {
-    $Computers = Get-ADComputer -Filter * -Server $TargetDomain -Properties ` @credParam
-        Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, `
-        Description, DNSHostName, Enabled, DistinguishedName -ErrorAction Stop
+    $Computers = Get-ADComputer -Filter * -Server $TargetDomain -Properties Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, Description, DNSHostName, Enabled, DistinguishedName -ErrorAction Stop @credParam
     
     foreach ($Computer in $Computers) {
         $Results += [PSCustomObject]@{

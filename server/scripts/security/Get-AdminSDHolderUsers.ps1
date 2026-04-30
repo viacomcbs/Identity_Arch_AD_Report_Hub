@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -15,10 +15,7 @@ try {
 
     foreach ($domain in $domainsToQuery) {
         try {
-            $Users = Get-ADUser -Filter 'adminCount -eq 1' -Server $domain -Properties ` @credParam
-                DisplayName, SamAccountName, mail, Title, Department, Enabled, `
-                memberOf, WhenCreated, LastLogonDate, PasswordLastSet, adminCount, `
-                DistinguishedName -ErrorAction SilentlyContinue
+            $Users = Get-ADUser -Filter 'adminCount -eq 1' -Server $domain -Properties DisplayName, SamAccountName, mail, Title, Department, Enabled, memberOf, WhenCreated, LastLogonDate, PasswordLastSet, adminCount, DistinguishedName -ErrorAction SilentlyContinue @credParam
 
             foreach ($User in @($Users)) {
                 $GroupCount = if ($User.memberOf) { @($User.memberOf).Count } else { 0 }

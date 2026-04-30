@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -11,8 +11,7 @@ try {
     $LdapFilter = "(|(extensionAttribute6=*Service Account*)(employeeID=*SVC*)(employeeNumber=*SVC*))"
 
     # Fetch all service accounts (no limit)
-    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server $TargetDomain -Properties ` @credParam
-        extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager
+    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server $TargetDomain -Properties extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager @credParam
 
     $Results = foreach ($User in $Users) {
         $ManagerName = $null

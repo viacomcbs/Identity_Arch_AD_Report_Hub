@@ -1,4 +1,4 @@
-﻿# Get-SIDHistory.ps1
+# Get-SIDHistory.ps1
 # Finds accounts with SID history attributes (potential security risk from migrations)
 param(
     [string]$ForestDomain = "",
@@ -18,7 +18,7 @@ try {
         if ($ForestDomain) {
             $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest @credParam
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null
@@ -39,9 +39,7 @@ try {
             }
 
             # Find users with SID history (use LDAP filter for performance)
-            $usersWithSIDHistory = Get-ADUser -LDAPFilter '(sIDHistory=*)' -Server $dc ` @credParam
-              -ResultPageSize 2000 -ResultSetSize $MaxResults `
-              -Properties SIDHistory, DisplayName, SamAccountName, Enabled, LastLogonDate, WhenCreated -ErrorAction SilentlyContinue
+            $usersWithSIDHistory = Get-ADUser -LDAPFilter '(sIDHistory=*)' -Server $dc -ResultPageSize 2000 -ResultSetSize $MaxResults -Properties SIDHistory, DisplayName, SamAccountName, Enabled, LastLogonDate, WhenCreated -ErrorAction SilentlyContinue @credParam
 
             foreach ($user in $usersWithSIDHistory) {
                 $sidHistoryCount = @($user.SIDHistory).Count
@@ -62,9 +60,7 @@ try {
             }
 
             # Find groups with SID history
-            $groupsWithSIDHistory = Get-ADGroup -LDAPFilter '(sIDHistory=*)' -Server $dc ` @credParam
-              -ResultPageSize 2000 -ResultSetSize $MaxResults `
-              -Properties SIDHistory, Name, SamAccountName, WhenCreated, GroupScope, GroupCategory -ErrorAction SilentlyContinue
+            $groupsWithSIDHistory = Get-ADGroup -LDAPFilter '(sIDHistory=*)' -Server $dc -ResultPageSize 2000 -ResultSetSize $MaxResults -Properties SIDHistory, Name, SamAccountName, WhenCreated, GroupScope, GroupCategory -ErrorAction SilentlyContinue @credParam
 
             foreach ($group in $groupsWithSIDHistory) {
                 $sidHistoryCount = @($group.SIDHistory).Count
@@ -85,9 +81,7 @@ try {
             }
 
             # Find computers with SID history
-            $computersWithSIDHistory = Get-ADComputer -LDAPFilter '(sIDHistory=*)' -Server $dc ` @credParam
-              -ResultPageSize 2000 -ResultSetSize $MaxResults `
-              -Properties SIDHistory, Name, SamAccountName, Enabled, WhenCreated -ErrorAction SilentlyContinue
+            $computersWithSIDHistory = Get-ADComputer -LDAPFilter '(sIDHistory=*)' -Server $dc -ResultPageSize 2000 -ResultSetSize $MaxResults -Properties SIDHistory, Name, SamAccountName, Enabled, WhenCreated -ErrorAction SilentlyContinue @credParam
 
             foreach ($comp in $computersWithSIDHistory) {
                 $sidHistoryCount = @($comp.SIDHistory).Count

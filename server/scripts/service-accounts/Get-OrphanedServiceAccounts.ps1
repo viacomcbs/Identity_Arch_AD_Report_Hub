@@ -1,18 +1,17 @@
-﻿param()
+param()
 
 try {
     Import-Module ActiveDirectory -ErrorAction Stop
     $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
     
-    $Forest = Get-ADForest @credParam
+    $Forest = Get-ADForest @credParam
     $ForestRoot = $Forest.RootDomain
 
     # Define the Search Criteria (EA6 or SVC tag)
     $LdapFilter = "(|(extensionAttribute6=*Non-Human Service Account*)(employeeID=*SVC*)(employeeNumber=*SVC*))"
 
     # Query the Global Catalog (Port 3268)
-    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server "${ForestRoot}:3268" -Properties ` @credParam
-        extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, whenChanged, Enabled, Manager
+    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server "${ForestRoot}:3268" -Properties extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, whenChanged, Enabled, Manager @credParam
 
     # Filter for accounts where Manager is null or empty (no limit)
     $OrphanedAccounts = $Users | Where-Object { [string]::IsNullOrWhiteSpace($_.Manager) }

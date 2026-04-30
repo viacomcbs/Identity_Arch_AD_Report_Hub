@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -27,17 +27,11 @@ try {
     foreach ($domain in $domainsToQuery) {
         try {
             # Enabled users that have a Manager attribute set
-            $users = Get-ADUser ` @credParam
-                -LDAPFilter '(&(objectClass=user)(manager=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))' `
-                -Server $domain `
-                -Properties DisplayName, SamAccountName, mail, Manager, `
-                    Department, Title, employeeType, extensionAttribute6, `
-                    WhenCreated, LastLogonDate, DistinguishedName -ErrorAction SilentlyContinue
+            $users = Get-ADUser -LDAPFilter '(&(objectClass=user)(manager=*)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))' -Server $domain -Properties DisplayName, SamAccountName, mail, Manager, Department, Title, employeeType, extensionAttribute6, WhenCreated, LastLogonDate, DistinguishedName -ErrorAction SilentlyContinue @credParam
 
             foreach ($user in @($users)) {
                 try {
-                    $manager = Get-ADUser -Identity $user.Manager -Server $domain ` @credParam
-                        -Properties DisplayName, SamAccountName, Enabled, mail -ErrorAction SilentlyContinue
+                    $manager = Get-ADUser -Identity $user.Manager -Server $domain -Properties DisplayName, SamAccountName, Enabled, mail -ErrorAction SilentlyContinue @credParam
 
                     if ($manager -and -not $manager.Enabled) {
                         $Results.Add([PSCustomObject]@{

@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -15,9 +15,7 @@ try {
 
     foreach ($domain in $domainsToQuery) {
         try {
-            $DisabledUsers = Get-ADUser -Filter 'Enabled -eq $false' -Server $domain -Properties ` @credParam
-                DisplayName, SamAccountName, mail, Title, Department, Enabled, `
-                memberOf, WhenCreated, WhenChanged, DistinguishedName -ErrorAction SilentlyContinue
+            $DisabledUsers = Get-ADUser -Filter 'Enabled -eq $false' -Server $domain -Properties DisplayName, SamAccountName, mail, Title, Department, Enabled, memberOf, WhenCreated, WhenChanged, DistinguishedName -ErrorAction SilentlyContinue @credParam
 
             foreach ($User in @($DisabledUsers)) {
                 if ($User.memberOf -and @($User.memberOf).Count -gt 0) {

@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain,
     [int]$InactiveDays = 90
 )
@@ -17,10 +17,7 @@ try {
 
     foreach ($domain in $domainsToQuery) {
         try {
-            $adminUsers = Get-ADUser -Filter 'adminCount -eq 1' -Server $domain -Properties ` @credParam
-                DisplayName, SamAccountName, mail, Title, Department, Enabled, `
-                memberOf, WhenCreated, LastLogonDate, PasswordLastSet, PasswordNeverExpires, `
-                DistinguishedName -ErrorAction SilentlyContinue
+            $adminUsers = Get-ADUser -Filter 'adminCount -eq 1' -Server $domain -Properties DisplayName, SamAccountName, mail, Title, Department, Enabled, memberOf, WhenCreated, LastLogonDate, PasswordLastSet, PasswordNeverExpires, DistinguishedName -ErrorAction SilentlyContinue @credParam
 
             foreach ($User in @($adminUsers)) {
                 $isStale = $false

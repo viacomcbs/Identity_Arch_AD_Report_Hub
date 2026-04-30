@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -56,8 +56,7 @@ try {
 
             foreach ($DC in @($DCs)) {
                 try {
-                    $Partners = Get-ADReplicationPartnerMetadata -Target $DC.HostName ` @credParam
-                        -ErrorAction SilentlyContinue
+                    $Partners = Get-ADReplicationPartnerMetadata -Target $DC.HostName -ErrorAction SilentlyContinue @credParam
 
                     foreach ($Partner in @($Partners)) {
                         $lastSuccess       = $Partner.LastReplicationSuccess

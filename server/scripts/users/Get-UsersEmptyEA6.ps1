@@ -1,4 +1,4 @@
-﻿param(
+param(
     [int]$Limit = 0,
     [string]$TargetDomain = ""
 )
@@ -43,9 +43,7 @@ try {
 
     foreach ($Domain in $AllDomains) {
         try {
-            $DomainUsers = Get-ADUser -LDAPFilter '(!(extensionAttribute6=*))' -Server $Domain ` @credParam
-                -ResultPageSize 2000 -ResultSetSize $null `
-                -Properties $ADProps
+            $DomainUsers = Get-ADUser -LDAPFilter '(!(extensionAttribute6=*))' -Server $Domain -ResultPageSize 2000 -ResultSetSize $null -Properties $ADProps @credParam
 
             foreach ($User in $DomainUsers) {
                 $ManagerName = Get-CnFromDn $User.Manager

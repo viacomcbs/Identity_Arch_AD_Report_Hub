@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain,
     
@@ -23,9 +23,7 @@ try {
     # Build filter for operating system (using wildcard match)
     $OSFilter = "*$OperatingSystem*"
     
-    $Computers = Get-ADComputer -Filter { OperatingSystem -like $OSFilter } -Server $TargetDomain -Properties ` @credParam
-        Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, `
-        Description, DNSHostName, Enabled, DistinguishedName -ErrorAction Stop
+    $Computers = Get-ADComputer -Filter { OperatingSystem -like $OSFilter } -Server $TargetDomain -Properties Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, Description, DNSHostName, Enabled, DistinguishedName -ErrorAction Stop @credParam
     
     foreach ($Computer in $Computers) {
         $Results += [PSCustomObject]@{

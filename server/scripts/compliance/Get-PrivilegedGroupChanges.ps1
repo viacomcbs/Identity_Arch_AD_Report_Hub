@@ -1,4 +1,4 @@
-﻿# Get-PrivilegedGroupChanges.ps1
+# Get-PrivilegedGroupChanges.ps1
 # Queries privileged group membership changes via replication metadata
 param(
     [int]$Days = 30,
@@ -166,7 +166,7 @@ try {
         if ($ForestDomain) {
             $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest @credParam
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null
@@ -239,11 +239,7 @@ try {
                     $memberAttrMeta = $null
                     try {
                         # Preferred (accurate): replication metadata for the 'member' attribute (detects add/remove occurred).
-                        $memberAttrMeta = Get-ADReplicationAttributeMetadata ` @credParam
-                            -Object $group.DistinguishedName `
-                            -Server $dc `
-                            -Properties member `
-                            -ErrorAction Stop |
+                        $memberAttrMeta = Get-ADReplicationAttributeMetadata -Object $group.DistinguishedName -Server $dc -Properties member -ErrorAction Stop | @credParam
                             Where-Object { $_.AttributeName -eq 'member' } |
                             Select-Object -First 1
                     } catch {
@@ -256,24 +252,13 @@ try {
                             $replMetadata = @()
                             try {
                                 $replMetadata = @(
-                                    Get-ADReplicationAttributeMetadata ` @credParam
-                                        -Object $group.DistinguishedName `
-                                        -Server $dc `
-                                        -Properties member `
-                                        -ShowAllLinkedValues `
-                                        -IncludeDeletedObjects `
-                                        -ErrorAction Stop |
+                                    Get-ADReplicationAttributeMetadata -Object $group.DistinguishedName -Server $dc -Properties member -ShowAllLinkedValues -IncludeDeletedObjects -ErrorAction Stop | @credParam
                                         Where-Object { $_.AttributeName -ieq 'member' }
                                 )
                             } catch {
                                 try {
                                     $replMetadata = @(
-                                        Get-ADReplicationAttributeMetadata ` @credParam
-                                            -Object $group.DistinguishedName `
-                                            -Server $dc `
-                                            -Properties member `
-                                            -ShowAllLinkedValues `
-                                            -ErrorAction Stop |
+                                        Get-ADReplicationAttributeMetadata -Object $group.DistinguishedName -Server $dc -Properties member -ShowAllLinkedValues -ErrorAction Stop | @credParam
                                             Where-Object { $_.AttributeName -ieq 'member' }
                                     )
                                 } catch {

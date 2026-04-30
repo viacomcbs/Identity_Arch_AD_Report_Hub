@@ -105,12 +105,12 @@
 
 .sidebar-group-label {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.9px;
+  letter-spacing: 0.7px;
   text-transform: uppercase;
   padding: 4px 8px 6px;
-  color: #3d6080;
+  color: #5a8aaa;
 }
 
 /* ── Nav items ─────────────────────────────── */
@@ -122,8 +122,8 @@
   border-radius: 6px;
   text-decoration: none;
   color: #7a9bbf;
-  font-size: 12.5px;
-  font-weight: 500;
+  font-size: 13.5px;
+  font-weight: 600;
   transition: background 0.12s ease, color 0.12s ease;
   white-space: nowrap;
   overflow: hidden;
