@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -16,9 +16,7 @@ try {
     foreach ($domain in $domainsToQuery) {
         try {
             # Users with unconstrained delegation
-            $Users = Get-ADUser -Filter 'TrustedForDelegation -eq $true' -Server $domain -Properties ` @credParam
-                DisplayName, SamAccountName, mail, Enabled, TrustedForDelegation, `
-                servicePrincipalName, WhenCreated, LastLogonDate, DistinguishedName -ErrorAction SilentlyContinue
+            $Users = Get-ADUser -Filter 'TrustedForDelegation -eq $true' -Server $domain -Properties DisplayName, SamAccountName, mail, Enabled, TrustedForDelegation, servicePrincipalName, WhenCreated, LastLogonDate, DistinguishedName -ErrorAction SilentlyContinue @credParam
 
             foreach ($User in @($Users)) {
                 $Results.Add([PSCustomObject]@{
@@ -38,9 +36,7 @@ try {
             }
 
             # Computers with unconstrained delegation (excluding DCs)
-            $Computers = Get-ADComputer -Filter 'TrustedForDelegation -eq $true' -Server $domain -Properties ` @credParam
-                Name, DNSHostName, Enabled, TrustedForDelegation, OperatingSystem, `
-                servicePrincipalName, WhenCreated, LastLogonDate, DistinguishedName, PrimaryGroupID -ErrorAction SilentlyContinue
+            $Computers = Get-ADComputer -Filter 'TrustedForDelegation -eq $true' -Server $domain -Properties Name, DNSHostName, Enabled, TrustedForDelegation, OperatingSystem, servicePrincipalName, WhenCreated, LastLogonDate, DistinguishedName, PrimaryGroupID -ErrorAction SilentlyContinue @credParam
 
             foreach ($Computer in @($Computers)) {
                 if ($Computer.PrimaryGroupID -in @(516, 521)) { continue }

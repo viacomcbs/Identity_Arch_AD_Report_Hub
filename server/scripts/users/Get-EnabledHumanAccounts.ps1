@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -9,8 +9,7 @@ try {
 
     $LdapFilter = "(extensionAttribute6=Human Primary Identity SF Match)"
 
-    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server $TargetDomain -ResultPageSize 2000 -ResultSetSize $null -Properties ` @credParam
-        extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled
+    $Users = Get-ADUser -LDAPFilter $LdapFilter -Server $TargetDomain -ResultPageSize 2000 -ResultSetSize $null -Properties extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled @credParam
 
     $Results = foreach ($User in $Users) {
         [PSCustomObject]@{

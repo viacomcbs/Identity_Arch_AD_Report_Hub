@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -27,12 +27,7 @@ try {
     foreach ($domain in $domainsToQuery) {
         try {
             # UAC bit 0x20 (32) = PASSWD_NOTREQD — account may have a blank password
-            $users = Get-ADUser -LDAPFilter '(userAccountControl:1.2.840.113556.1.4.803:=32)' ` @credParam
-                -Server $domain `
-                -Properties DisplayName, SamAccountName, mail, Enabled, `
-                    PasswordLastSet, LastLogonDate, WhenCreated, `
-                    employeeType, extensionAttribute6, Department, `
-                    DistinguishedName -ErrorAction SilentlyContinue
+            $users = Get-ADUser -LDAPFilter '(userAccountControl:1.2.840.113556.1.4.803:=32)' -Server $domain -Properties DisplayName, SamAccountName, mail, Enabled, PasswordLastSet, LastLogonDate, WhenCreated, employeeType, extensionAttribute6, Department, DistinguishedName -ErrorAction SilentlyContinue @credParam
 
             foreach ($user in @($users)) {
                 $Results.Add([PSCustomObject]@{

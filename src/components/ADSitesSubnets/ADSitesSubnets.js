@@ -6,41 +6,63 @@ import FavoriteButton from '../common/FavoriteButton';
 import { useApp } from '../../context/AppContext';
 import { formatDate } from '../../utils/dateUtils';
 
+const TOPOLOGY_API = new Set(['ad-sites', 'dc-replication']);
+
+const QUERY_GROUPS = [
+  {
+    id: 'sites',
+    title: 'Sites',
+    queries: [
+      { id: 'ad-sites',    label: 'AD Sites Summary', description: 'All sites with DC count, subnet count, and linked site details' },
+      { id: 'sites-no-dc', label: 'Sites with No DC',  description: 'AD Sites that have no Domain Controller assigned — potential routing issues' },
+    ],
+  },
+  {
+    id: 'subnets',
+    title: 'Subnets',
+    queries: [
+      { id: 'subnets',            label: 'All Subnets',        description: 'All subnets with their AD Site assignment and DC associations' },
+      { id: 'subnets-detailed',   label: 'Subnets Detailed',   description: 'Subnets with DC count, physical location, and modification dates' },
+      { id: 'unassigned-subnets', label: 'Unassigned Subnets', description: 'Subnets not associated with any AD Site — clients may authenticate suboptimally' },
+    ],
+  },
+  {
+    id: 'replication',
+    title: 'Replication',
+    queries: [
+      { id: 'site-links',         label: 'AD Site Links',         description: 'Site link objects, replication intervals, costs, and schedules' },
+      { id: 'replication-health', label: 'Replication Health',    description: 'Per-DC partner replication status — highlights overdue (>24h) and failed links' },
+      { id: 'dc-replication',     label: 'DC Replication Status', description: 'DC-to-DC replication connections, naming contexts, and failure counts' },
+    ],
+  },
+];
+
+const ALL_QUERIES = QUERY_GROUPS.flatMap(g => g.queries);
+
 const ADSitesSubnets = () => {
   const { selectedDomain } = useApp();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [data, setData]               = useState([]);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState(null);
   const [activeQuery, setActiveQuery] = useState(null);
-  
-  // Pagination state
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize]       = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
-  
-  // Sorting state
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [sortConfig, setSortConfig]   = useState({ key: null, direction: 'asc' });
 
-  const predefinedQueries = [
-    { id: 'site-links', label: 'AD Site Links', description: 'Replication topology and costs' },
-    { id: 'subnets', label: 'All Subnets', description: 'Subnet to site assignments' },
-    { id: 'subnets-detailed', label: 'Subnets Detailed', description: 'Subnets with DC count and metadata' },
-    { id: 'sites-no-dc', label: 'Sites with No DC', description: 'AD Sites with no Domain Controller' },
-    { id: 'unassigned-subnets', label: 'Unassigned Subnets', description: 'Subnets not associated with any AD Site' },
-    { id: 'replication-health', label: 'Replication Health', description: 'Per-DC replication partner status — highlights overdue (>24h) and failed replication links' },
-  ];
+  const activeQueryDef = ALL_QUERIES.find(q => q.id === activeQuery);
 
   const handleQuery = async (queryId) => {
     setLoading(true);
     setError(null);
     setActiveQuery(queryId);
     setCurrentPage(1);
-    setSortConfig({ key: null, direction: 'asc' }); // Reset sorting
+    setSortConfig({ key: null, direction: 'asc' });
     try {
+      const endpoint = TOPOLOGY_API.has(queryId) ? '/api/topology' : '/api/sites-subnets';
       const params = { query: queryId };
       if (selectedDomain) params.domain = selectedDomain;
-      const response = await axios.get('/api/sites-subnets', { params });
+      const response = await axios.get(endpoint, { params });
       const result = response.data.data;
-      // Ensure data is always an array of objects (not a raw string)
       setData(Array.isArray(result) ? result : []);
     } catch (err) {
       setError(err.response?.data?.error || 'Query failed');
@@ -50,91 +72,197 @@ const ADSitesSubnets = () => {
     }
   };
 
-  // Sorting logic
   const sortedData = useMemo(() => {
-    if (!data || !Array.isArray(data)) return [];
-    let sortableItems = [...data];
-    if (sortConfig.key !== null) {
-      sortableItems.sort((a, b) => {
-        let aValue = a[sortConfig.key];
-        let bValue = b[sortConfig.key];
-        if (aValue === null || aValue === undefined) aValue = '';
-        if (bValue === null || bValue === undefined) bValue = '';
-        if (typeof aValue === 'boolean') aValue = aValue ? 1 : 0;
-        if (typeof bValue === 'boolean') bValue = bValue ? 1 : 0;
-        if (typeof aValue === 'number' && typeof bValue === 'number') {
-          return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
-        }
-        const aStr = String(aValue).toLowerCase();
-        const bStr = String(bValue).toLowerCase();
-        if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
+    if (!data?.length) return [];
+    const items = [...data];
+    if (sortConfig.key) {
+      items.sort((a, b) => {
+        let av = a[sortConfig.key] ?? '';
+        let bv = b[sortConfig.key] ?? '';
+        if (typeof av === 'boolean') av = av ? 1 : 0;
+        if (typeof bv === 'boolean') bv = bv ? 1 : 0;
+        if (typeof av === 'number' && typeof bv === 'number')
+          return sortConfig.direction === 'asc' ? av - bv : bv - av;
+        const as = String(av).toLowerCase();
+        const bs = String(bv).toLowerCase();
+        if (as < bs) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (as > bs) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
       });
     }
-    return sortableItems;
+    return items;
   }, [data, sortConfig]);
 
-  // Pagination helpers - use sortedData
-  const totalPages = Math.ceil(sortedData.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const paginatedData = sortedData.slice(startIndex, endIndex);
+  const totalPages    = Math.max(1, Math.ceil(sortedData.length / pageSize));
+  const startIndex    = (currentPage - 1) * pageSize;
+  const paginatedData = sortedData.slice(startIndex, startIndex + pageSize);
 
-  const handlePageSizeChange = (newSize) => {
-    setPageSize(newSize);
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
     setCurrentPage(1);
   };
 
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
-
-  const handleSort = (key) => {
-    let direction = 'asc';
-    if (sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
-    }
-    setSortConfig({ key, direction });
-    setCurrentPage(1); // Reset to first page when sorting
-  };
-
-  const getSortIndicator = (key) => {
-    if (sortConfig.key !== key) return <span className="sort-indicator">↕</span>;
-    return <span className="sort-indicator active">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
-  };
-
   const SortableHeader = ({ columnKey, label }) => (
-    <th onClick={() => handleSort(columnKey)} style={{ cursor: 'pointer' }} className="sortable-th">
+    <th onClick={() => handleSort(columnKey)} className="sortable-th">
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
         {label}
-        {getSortIndicator(columnKey)}
+        <span className={`sort-indicator${sortConfig.key === columnKey ? ' active' : ''}`}>
+          {sortConfig.key === columnKey ? (sortConfig.direction === 'asc' ? '↑' : '↓') : '↕'}
+        </span>
       </div>
     </th>
   );
 
+  // ── Tables ──────────────────────────────────────────────────────────────────
+
+  const renderSitesSummaryTable = () => (
+    <table className="data-table">
+      <thead><tr>
+        <SortableHeader columnKey="SiteName"         label="Site Name" />
+        <SortableHeader columnKey="DCCount"          label="DCs" />
+        <SortableHeader columnKey="SubnetCount"      label="Subnets" />
+        <SortableHeader columnKey="SiteLinksCount"   label="Site Links" />
+        <SortableHeader columnKey="LinkedSitesCount" label="Linked Sites" />
+        <SortableHeader columnKey="LinkedSites"      label="Linked Site Names" />
+      </tr></thead>
+      <tbody>
+        {paginatedData.map((site, i) => (
+          <tr key={i}>
+            <td><strong>{site.SiteName}</strong></td>
+            <td>{site.DCCount || 0}</td>
+            <td>{site.SubnetCount || 0}</td>
+            <td>{site.SiteLinksCount || 0}</td>
+            <td>{site.LinkedSitesCount || 0}</td>
+            <td className="sites-list">{site.LinkedSites || '-'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const renderSitesNoDCTable = () => (
+    <table className="data-table">
+      <thead><tr>
+        <SortableHeader columnKey="SiteName"     label="Site Name" />
+        <SortableHeader columnKey="Description"  label="Description" />
+        <SortableHeader columnKey="DCCount"      label="DC Count" />
+        <SortableHeader columnKey="SubnetCount"  label="Subnet Count" />
+        <SortableHeader columnKey="SiteLinks"    label="Site Links" />
+        <SortableHeader columnKey="Created"      label="Created" />
+        <SortableHeader columnKey="LastModified" label="Last Modified" />
+      </tr></thead>
+      <tbody>
+        {paginatedData.map((site, i) => (
+          <tr key={i}>
+            <td><strong>{site.SiteName}</strong></td>
+            <td>{site.Description || '-'}</td>
+            <td>{site.DCCount}</td>
+            <td>{site.SubnetCount}</td>
+            <td>{site.SiteLinks || '-'}</td>
+            <td>{formatDate(site.Created)}</td>
+            <td>{formatDate(site.LastModified)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const renderSubnetsTable = () => (
+    <table className="data-table">
+      <thead><tr>
+        <SortableHeader columnKey="SubnetName"  label="Subnet Name" />
+        <SortableHeader columnKey="ADSite"      label="AD Site" />
+        <SortableHeader columnKey="DCCount"     label="DC Count" />
+        <SortableHeader columnKey="DCNames"     label="DC Names" />
+        <SortableHeader columnKey="Description" label="Description" />
+        <SortableHeader columnKey="Location"    label="Location" />
+      </tr></thead>
+      <tbody>
+        {paginatedData.map((s, i) => (
+          <tr key={i}>
+            <td>{s['Subnet Name'] || s.SubnetName || s.Subnet}</td>
+            <td>{s['AD Site'] || s.ADSite}</td>
+            <td>{s['DC Count'] || s.DCCount || 0}</td>
+            <td className="dc-names">{s['DC Names'] || s.DCNames || '-'}</td>
+            <td>{s['Subnet Description'] || s.Description || '-'}</td>
+            <td>{s['Subnet Location'] || s.Location || '-'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const renderSubnetsDetailedTable = () => (
+    <table className="data-table">
+      <thead><tr>
+        <SortableHeader columnKey="Subnet"           label="Subnet" />
+        <SortableHeader columnKey="ADSite"           label="AD Site" />
+        <SortableHeader columnKey="DCCount"          label="DC Count" />
+        <SortableHeader columnKey="Description"      label="Description" />
+        <SortableHeader columnKey="PhysicalLocation" label="Physical Location" />
+        <SortableHeader columnKey="CreatedDate"      label="Created" />
+        <SortableHeader columnKey="LastModified"     label="Last Modified" />
+      </tr></thead>
+      <tbody>
+        {paginatedData.map((s, i) => (
+          <tr key={i}>
+            <td>{s.Subnet || s['Subnet Name']}</td>
+            <td>{s['AD Site'] || s.ADSite}</td>
+            <td>{s['DC Count'] || s.DCCount || 0}</td>
+            <td>{s.Description || '-'}</td>
+            <td>{s['Physical Location'] || s.PhysicalLocation || '-'}</td>
+            <td>{formatDate(s.CreatedDate || s['Created Date'])}</td>
+            <td>{formatDate(s.LastModified || s['Last Modified'])}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const renderUnassignedSubnetsTable = () => (
+    <table className="data-table">
+      <thead><tr>
+        <SortableHeader columnKey="Subnet"           label="Subnet" />
+        <SortableHeader columnKey="ADSite"           label="AD Site" />
+        <SortableHeader columnKey="Description"      label="Description" />
+        <SortableHeader columnKey="PhysicalLocation" label="Physical Location" />
+        <SortableHeader columnKey="Created"          label="Created" />
+        <SortableHeader columnKey="LastModified"     label="Last Modified" />
+      </tr></thead>
+      <tbody>
+        {paginatedData.map((s, i) => (
+          <tr key={i}>
+            <td>{s.Subnet}</td>
+            <td><span className="unassigned-site">{s.ADSite || 'None'}</span></td>
+            <td>{s.Description || '-'}</td>
+            <td>{s.PhysicalLocation || '-'}</td>
+            <td>{formatDate(s.Created)}</td>
+            <td>{formatDate(s.LastModified)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
   const renderSiteLinksTable = () => (
     <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="SiteLinkName" label="Site Link Name" />
-          <SortableHeader columnKey="Description" label="Description" />
-          <SortableHeader columnKey="Cost" label="Cost" />
-          <SortableHeader columnKey="ReplicationIntervalMin" label="Replication Interval (Min)" />
-          <SortableHeader columnKey="ReplicationSchedule" label="Schedule" />
-          <SortableHeader columnKey="ChangeNotification" label="Change Notify" />
-          <SortableHeader columnKey="SiteCount" label="Site Count" />
-          <SortableHeader columnKey="AssociatedSites" label="Associated Sites" />
-        </tr>
-      </thead>
+      <thead><tr>
+        <SortableHeader columnKey="SiteLinkName"           label="Site Link Name" />
+        <SortableHeader columnKey="Description"            label="Description" />
+        <SortableHeader columnKey="Cost"                   label="Cost" />
+        <SortableHeader columnKey="ReplicationIntervalMin" label="Interval (min)" />
+        <SortableHeader columnKey="ReplicationSchedule"    label="Schedule" />
+        <SortableHeader columnKey="ChangeNotification"     label="Change Notify" />
+        <SortableHeader columnKey="SiteCount"              label="Sites" />
+        <SortableHeader columnKey="AssociatedSites"        label="Associated Sites" />
+      </tr></thead>
       <tbody>
         {paginatedData.map((link, i) => (
           <tr key={i}>
-            <td>{link.SiteLinkName || link['Site Link Name']}</td>
+            <td><strong>{link.SiteLinkName || link['Site Link Name']}</strong></td>
             <td>{link.Description || '-'}</td>
             <td>{link.Cost}</td>
             <td>{link.ReplicationIntervalMin || link.DurationMin || '-'}</td>
@@ -152,213 +280,84 @@ const ADSitesSubnets = () => {
     </table>
   );
 
-  const renderSubnetsTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="SubnetName" label="Subnet Name" />
-          <SortableHeader columnKey="ADSite" label="AD Site" />
-          <SortableHeader columnKey="DCCount" label="DC Count" />
-          <SortableHeader columnKey="DCNames" label="DC Names" />
-          <SortableHeader columnKey="Description" label="Description" />
-          <SortableHeader columnKey="Location" label="Location" />
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedData.map((subnet, i) => (
-          <tr key={i}>
-            <td>{subnet['Subnet Name'] || subnet.SubnetName || subnet.Subnet}</td>
-            <td>{subnet['AD Site'] || subnet.ADSite}</td>
-            <td>{subnet['DC Count'] || subnet.DCCount || 0}</td>
-            <td className="dc-names">{subnet['DC Names'] || subnet.DCNames || '-'}</td>
-            <td>{subnet['Subnet Description'] || subnet.Description || '-'}</td>
-            <td>{subnet['Subnet Location'] || subnet.Location || '-'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderSubnetsDetailedTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="Subnet" label="Subnet" />
-          <SortableHeader columnKey="ADSite" label="AD Site" />
-          <SortableHeader columnKey="DCCount" label="DC Count" />
-          <SortableHeader columnKey="Description" label="Description" />
-          <SortableHeader columnKey="PhysicalLocation" label="Physical Location" />
-          <SortableHeader columnKey="CreatedDate" label="Created" />
-          <SortableHeader columnKey="LastModified" label="Last Modified" />
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedData.map((subnet, i) => (
-          <tr key={i}>
-            <td>{subnet.Subnet || subnet['Subnet Name']}</td>
-            <td>{subnet['AD Site'] || subnet.ADSite}</td>
-            <td>{subnet['DC Count'] || subnet.DCCount || 0}</td>
-            <td>{subnet.Description || '-'}</td>
-            <td>{subnet['Physical Location'] || subnet.PhysicalLocation || '-'}</td>
-            <td>{formatDate(subnet.CreatedDate || subnet['Created Date'])}</td>
-            <td>{formatDate(subnet.LastModified || subnet['Last Modified'])}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderPagination = () => {
-    if (data.length === 0) return null;
-    const startItem = startIndex + 1;
-    const endItem = Math.min(endIndex, data.length);
-
-    return (
-      <div className="pagination-controls">
-        <div className="pagination-info">
-          Showing {startItem}-{endItem} of {data.length} results
-        </div>
-        <div className="pagination-actions">
-          <div className="pagination-page-size">
-            <label>Per page:</label>
-            <select 
-              value={pageSize} 
-              onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-            >
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-          <div className="pagination-nav">
-            <button 
-              onClick={handlePrevPage} 
-              disabled={currentPage <= 1}
-            >
-              Back
-            </button>
-            <span className="page-indicator">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button 
-              onClick={handleNextPage} 
-              disabled={currentPage >= totalPages}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderSitesNoDCTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="SiteName" label="Site Name" />
-          <SortableHeader columnKey="Description" label="Description" />
-          <SortableHeader columnKey="DCCount" label="DC Count" />
-          <SortableHeader columnKey="SubnetCount" label="Subnet Count" />
-          <SortableHeader columnKey="SiteLinks" label="Site Links" />
-          <SortableHeader columnKey="Created" label="Created" />
-          <SortableHeader columnKey="LastModified" label="Last Modified" />
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedData.map((site, i) => (
-          <tr key={i}>
-            <td>{site.SiteName}</td>
-            <td>{site.Description || '-'}</td>
-            <td>{site.DCCount}</td>
-            <td>{site.SubnetCount}</td>
-            <td>{site.SiteLinks || '-'}</td>
-            <td>{formatDate(site.Created)}</td>
-            <td>{formatDate(site.LastModified)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const getReplicationStatusClass = (status) => {
+  const getReplStatusClass = (status) => {
     switch (status) {
-      case 'Healthy': return 'enabled';
-      case 'Warning': return 'risk-medium';
-      case 'Overdue': return 'risk-high';
-      case 'Failed':  return 'disabled';
-      default:        return '';
+      case 'Healthy':  return 'enabled';
+      case 'Warning':  return 'risk-medium';
+      case 'Overdue':  return 'risk-high';
+      case 'Failed':   return 'disabled';
+      default:         return '';
     }
   };
 
   const renderReplicationHealthTable = () => (
     <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="Domain" label="Domain" />
-          <SortableHeader columnKey="DCName" label="DC Name" />
-          <SortableHeader columnKey="Site" label="DC Site" />
-          <SortableHeader columnKey="PartnerName" label="Partner DC" />
-          <SortableHeader columnKey="PartnerSite" label="Partner Site" />
-          <SortableHeader columnKey="Partition" label="Partition" />
-          <SortableHeader columnKey="ReplicationStatus" label="Status" />
-          <SortableHeader columnKey="HoursSinceLastSuccess" label="Hours Since Success" />
-          <SortableHeader columnKey="ConsecutiveFailures" label="Consecutive Failures" />
-          <SortableHeader columnKey="LastSuccess" label="Last Success" />
-          <SortableHeader columnKey="LastAttempt" label="Last Attempt" />
-          <SortableHeader columnKey="LastResultMessage" label="Last Result" />
-        </tr>
-      </thead>
+      <thead><tr>
+        <SortableHeader columnKey="Domain"                label="Domain" />
+        <SortableHeader columnKey="DCName"                label="DC Name" />
+        <SortableHeader columnKey="Site"                  label="DC Site" />
+        <SortableHeader columnKey="PartnerName"           label="Partner DC" />
+        <SortableHeader columnKey="PartnerSite"           label="Partner Site" />
+        <SortableHeader columnKey="Partition"             label="Partition" />
+        <SortableHeader columnKey="ReplicationStatus"     label="Status" />
+        <SortableHeader columnKey="HoursSinceLastSuccess" label="Hrs Since Success" />
+        <SortableHeader columnKey="ConsecutiveFailures"   label="Failures" />
+        <SortableHeader columnKey="LastSuccess"           label="Last Success" />
+        <SortableHeader columnKey="LastAttempt"           label="Last Attempt" />
+        <SortableHeader columnKey="LastResultMessage"     label="Last Result" />
+      </tr></thead>
       <tbody>
         {paginatedData.map((row, i) => (
-          <tr key={i} style={row.IsOverdue ? { backgroundColor: 'rgba(220, 38, 38, 0.04)' } : {}}>
+          <tr key={i} className={row.IsOverdue ? 'row-overdue' : ''}>
             <td>{row.Domain || '-'}</td>
             <td>{row.DCName || '-'}</td>
             <td>{row.Site || '-'}</td>
             <td>{row.PartnerName || '-'}</td>
             <td>{row.PartnerSite || '-'}</td>
-            <td style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{row.Partition || '-'}</td>
-            <td>
-              <span className={`status-badge ${getReplicationStatusClass(row.ReplicationStatus)}`}>
-                {row.ReplicationStatus || '-'}
-              </span>
+            <td className="partition-cell">{row.Partition || '-'}</td>
+            <td><span className={`status-badge ${getReplStatusClass(row.ReplicationStatus)}`}>{row.ReplicationStatus || '-'}</span></td>
+            <td className={row.HoursSinceLastSuccess > 24 ? 'cell-error' : ''}>
+              {row.HoursSinceLastSuccess != null ? `${row.HoursSinceLastSuccess}h` : '-'}
             </td>
-            <td style={{ fontWeight: row.HoursSinceLastSuccess > 24 ? 600 : 'normal', color: row.HoursSinceLastSuccess > 24 ? 'var(--error-text)' : 'inherit' }}>
-              {row.HoursSinceLastSuccess !== null && row.HoursSinceLastSuccess !== undefined ? `${row.HoursSinceLastSuccess}h` : '-'}
-            </td>
-            <td style={{ color: row.ConsecutiveFailures > 0 ? 'var(--error-text)' : 'inherit' }}>
+            <td className={row.ConsecutiveFailures > 0 ? 'cell-error' : ''}>
               {row.ConsecutiveFailures ?? '-'}
             </td>
             <td>{formatDate(row.LastSuccess)}</td>
             <td>{formatDate(row.LastAttempt)}</td>
-            <td style={{ fontSize: '12px' }}>{row.LastResultCode === 0 ? 'Success' : (row.LastResultMessage || '-')}</td>
+            <td className="result-cell">{row.LastResultCode === 0 ? 'Success' : (row.LastResultMessage || '-')}</td>
           </tr>
         ))}
       </tbody>
     </table>
   );
 
-  const renderUnassignedSubnetsTable = () => (
+  const renderDCReplicationTable = () => (
     <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="Subnet" label="Subnet" />
-          <SortableHeader columnKey="ADSite" label="AD Site" />
-          <SortableHeader columnKey="Description" label="Description" />
-          <SortableHeader columnKey="PhysicalLocation" label="Physical Location" />
-          <SortableHeader columnKey="Created" label="Created" />
-          <SortableHeader columnKey="LastModified" label="Last Modified" />
-        </tr>
-      </thead>
+      <thead><tr>
+        <SortableHeader columnKey="SourceDC"          label="Source DC" />
+        <SortableHeader columnKey="DestinationDC"     label="Destination DC" />
+        <SortableHeader columnKey="NamingContext"      label="Naming Context" />
+        <SortableHeader columnKey="LastReplication"   label="Last Replication" />
+        <SortableHeader columnKey="ReplicationStatus" label="Status" />
+        <SortableHeader columnKey="FailureCount"      label="Failures" />
+      </tr></thead>
       <tbody>
-        {paginatedData.map((subnet, i) => (
+        {paginatedData.map((repl, i) => (
           <tr key={i}>
-            <td>{subnet.Subnet}</td>
-            <td><span style={{ color: 'var(--error-text)' }}>{subnet.ADSite}</span></td>
-            <td>{subnet.Description || '-'}</td>
-            <td>{subnet.PhysicalLocation || '-'}</td>
-            <td>{formatDate(subnet.Created)}</td>
-            <td>{formatDate(subnet.LastModified)}</td>
+            <td>{repl.SourceDC}</td>
+            <td>{repl.DestinationDC}</td>
+            <td className="dn-cell">{repl.NamingContext || '-'}</td>
+            <td>{repl.LastReplication || 'Never'}</td>
+            <td>
+              <span className={`status-badge ${repl.ReplicationStatus === 'Success' ? 'enabled' : repl.ReplicationStatus === 'In Progress' ? 'warning' : 'disabled'}`}>
+                {repl.ReplicationStatus || 'Unknown'}
+              </span>
+            </td>
+            <td>
+              <span className={`failure-badge ${repl.FailureCount > 0 ? 'has-failures' : 'no-failures'}`}>
+                {repl.FailureCount || 0}
+              </span>
+            </td>
           </tr>
         ))}
       </tbody>
@@ -367,51 +366,113 @@ const ADSitesSubnets = () => {
 
   const renderTable = () => {
     switch (activeQuery) {
-      case 'site-links':
-        return renderSiteLinksTable();
-      case 'subnets':
-        return renderSubnetsTable();
-      case 'subnets-detailed':
-        return renderSubnetsDetailedTable();
-      case 'sites-no-dc':
-        return renderSitesNoDCTable();
-      case 'unassigned-subnets':
-        return renderUnassignedSubnetsTable();
-      case 'replication-health':
-        return renderReplicationHealthTable();
-      default:
-        return null;
+      case 'ad-sites':           return renderSitesSummaryTable();
+      case 'sites-no-dc':        return renderSitesNoDCTable();
+      case 'subnets':            return renderSubnetsTable();
+      case 'subnets-detailed':   return renderSubnetsDetailedTable();
+      case 'unassigned-subnets': return renderUnassignedSubnetsTable();
+      case 'site-links':         return renderSiteLinksTable();
+      case 'replication-health': return renderReplicationHealthTable();
+      case 'dc-replication':     return renderDCReplicationTable();
+      default:                   return null;
     }
+  };
+
+  const renderPagination = () => {
+    if (!sortedData.length) return null;
+    const start = startIndex + 1;
+    const end   = Math.min(startIndex + pageSize, sortedData.length);
+    return (
+      <div className="pagination-controls">
+        <div className="pagination-info">Showing {start}–{end} of {sortedData.length} results</div>
+        <div className="pagination-actions">
+          <div className="page-size-select">
+            <label>Per page:</label>
+            <select value={pageSize} onChange={e => { setPageSize(+e.target.value); setCurrentPage(1); }}>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          <div className="page-nav">
+            <button className="btn btn-secondary" onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage <= 1}>Back</button>
+            <span className="page-indicator">Page {currentPage} of {totalPages}</span>
+            <button className="btn btn-secondary" onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage >= totalPages}>Next</button>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="sites-page">
-      <h1>AD Sites & Subnets</h1>
 
+      <h1>AD Sites &amp; Subnets</h1>
+
+      {/* ── Sites ── */}
       <div className="query-panel card">
-        <h3>Predefined Queries</h3>
-        <div className="query-cards" style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: '16px'
-        }}>
-          {predefinedQueries.map((q) => (
+        <h3>Sites</h3>
+        <div className="ss-query-cards">
+          {QUERY_GROUPS[0].queries.map(q => (
             <div
               key={q.id}
-              className={`query-card ${activeQuery === q.id ? 'active' : ''}`}
+              className={`ss-query-card ${activeQuery === q.id ? 'active' : ''}`}
               onClick={() => handleQuery(q.id)}
-              style={{
-                flex: '0 0 calc(33.33% - 16px)',
-                maxWidth: 'calc(33.33% - 16px)',
-                minWidth: '280px'
-              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleQuery(q.id); } }}
             >
-              <div className="query-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{q.label}</span>
+              <div className="ss-query-header">
+                <span className="ss-query-label">{q.label}</span>
                 <FavoriteButton page="/sites-subnets" queryId={q.id} label={q.label} />
               </div>
-              <div className="query-card-desc">{q.description}</div>
+              <div className="ss-query-desc">{q.description}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Subnets ── */}
+      <div className="query-panel card">
+        <h3>Subnets</h3>
+        <div className="ss-query-cards">
+          {QUERY_GROUPS[1].queries.map(q => (
+            <div
+              key={q.id}
+              className={`ss-query-card ${activeQuery === q.id ? 'active' : ''}`}
+              onClick={() => handleQuery(q.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleQuery(q.id); } }}
+            >
+              <div className="ss-query-header">
+                <span className="ss-query-label">{q.label}</span>
+                <FavoriteButton page="/sites-subnets" queryId={q.id} label={q.label} />
+              </div>
+              <div className="ss-query-desc">{q.description}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Replication ── */}
+      <div className="query-panel card">
+        <h3>Replication</h3>
+        <div className="ss-query-cards">
+          {QUERY_GROUPS[2].queries.map(q => (
+            <div
+              key={q.id}
+              className={`ss-query-card ${activeQuery === q.id ? 'active' : ''}`}
+              onClick={() => handleQuery(q.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleQuery(q.id); } }}
+            >
+              <div className="ss-query-header">
+                <span className="ss-query-label">{q.label}</span>
+                <FavoriteButton page="/sites-subnets" queryId={q.id} label={q.label} />
+              </div>
+              <div className="ss-query-desc">{q.description}</div>
             </div>
           ))}
         </div>
@@ -422,27 +483,30 @@ const ADSitesSubnets = () => {
       {loading && (
         <div className="loading">
           <div className="spinner"></div>
-          <span>Querying AD Sites & Subnets...</span>
+          <span>Running report…</span>
         </div>
       )}
 
-      {!loading && data.length > 0 && (
-        <div className="results-panel card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div className="results-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border-color)' }}>
+      {!loading && sortedData.length > 0 && (
+        <div className="results-panel card">
+          <div className="results-header">
             <div>
-              <span>Found {data.length} total result(s)</span>
-              <span style={{ marginLeft: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                Click column headers to sort ↕
-              </span>
+              <strong>{activeQueryDef?.label}</strong>
+              <span className="results-count">{sortedData.length} result{sortedData.length !== 1 ? 's' : ''}</span>
             </div>
-            <ExportButton data={data} filename={`ad_${activeQuery || 'export'}`} title="Sites & Subnets Report" />
+            <ExportButton data={sortedData} filename={`sites_${activeQuery || 'export'}`} title="AD Sites & Subnets Report" />
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            {renderTable()}
-          </div>
+          <div className="table-scroll">{renderTable()}</div>
           {renderPagination()}
         </div>
       )}
+
+      {!loading && activeQuery && !error && sortedData.length === 0 && (
+        <div className="empty-state card">
+          <p>No data found for this query.</p>
+        </div>
+      )}
+
     </div>
   );
 };

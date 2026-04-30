@@ -1,4 +1,4 @@
-﻿param(
+param(
     [int]$Limit = 0,
     [string]$TargetDomain = ""
 )
@@ -38,13 +38,7 @@ try {
 
     foreach ($Domain in $ForestDomains) {
         try {
-            $Users = Get-ADUser -Filter 'Enabled -eq $true' -Server $Domain ` @credParam
-              -ResultPageSize 2000 -ResultSetSize $null `
-              -Properties `
-                GivenName, Surname, DisplayName, Title, UserPrincipalName, SamAccountName, `
-                EmailAddress, Department, EmployeeID, EmployeeNumber, EmployeeType, `
-                Description, Manager, whenCreated, PasswordNeverExpires, PasswordExpired, `
-                extensionAttribute5, extensionAttribute6
+            $Users = Get-ADUser -Filter 'Enabled -eq $true' -Server $Domain -ResultPageSize 2000 -ResultSetSize $null -Properties GivenName, Surname, DisplayName, Title, UserPrincipalName, SamAccountName, EmailAddress, Department, EmployeeID, EmployeeNumber, EmployeeType, Description, Manager, whenCreated, PasswordNeverExpires, PasswordExpired, extensionAttribute5, extensionAttribute6 @credParam
 
             foreach ($User in $Users) {
                 # Avoid per-user lookups (too slow for whole-forest). Extract CN from Manager DN.

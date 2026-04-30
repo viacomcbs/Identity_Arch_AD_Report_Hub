@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -15,10 +15,7 @@ try {
 
     foreach ($domain in $domainsToQuery) {
         try {
-            $Users = Get-ADUser -Filter 'DoesNotRequirePreAuth -eq $true' -Server $domain -Properties ` @credParam
-                DisplayName, SamAccountName, mail, Title, Department, Enabled, `
-                DoesNotRequirePreAuth, WhenCreated, LastLogonDate, PasswordLastSet, `
-                DistinguishedName -ErrorAction SilentlyContinue
+            $Users = Get-ADUser -Filter 'DoesNotRequirePreAuth -eq $true' -Server $domain -Properties DisplayName, SamAccountName, mail, Title, Department, Enabled, DoesNotRequirePreAuth, WhenCreated, LastLogonDate, PasswordLastSet, DistinguishedName -ErrorAction SilentlyContinue @credParam
 
             foreach ($User in @($Users)) {
                 $Results.Add([PSCustomObject]@{

@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -16,10 +16,7 @@ catch {
 
 try {
     # Get all printer objects from the specified domain
-    $Printers = Get-ADObject -Filter { objectClass -eq 'printQueue' } ` @credParam
-        -Server $TargetDomain `
-        -Properties printColor, printDuplexSupported, serverName, location, printerName, uNCName, portName, driverName, printShareName `
-        -ErrorAction Stop
+    $Printers = Get-ADObject -Filter { objectClass -eq 'printQueue' } -Server $TargetDomain -Properties printColor, printDuplexSupported, serverName, location, printerName, uNCName, portName, driverName, printShareName -ErrorAction Stop @credParam
 
     if ($null -eq $Printers -or @($Printers).Count -eq 0) {
         @() | ConvertTo-Json

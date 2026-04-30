@@ -1,4 +1,4 @@
-﻿param()
+param()
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -18,9 +18,7 @@ try {
     
     foreach ($DomainName in $Forest.Domains) {
         try {
-            $Computers = Get-ADComputer -Filter { Enabled -eq $true } -Server $DomainName -Properties ` @credParam
-                Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, `
-                Description, DNSHostName, Enabled, DistinguishedName -ErrorAction SilentlyContinue
+            $Computers = Get-ADComputer -Filter { Enabled -eq $true } -Server $DomainName -Properties Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, Description, DNSHostName, Enabled, DistinguishedName -ErrorAction SilentlyContinue @credParam
             
             foreach ($Computer in $Computers) {
                 $Results += [PSCustomObject]@{

@@ -1,4 +1,4 @@
-﻿# Get-StaleAdminAccounts.ps1
+# Get-StaleAdminAccounts.ps1
 # Finds privileged users who haven't logged on in X days
 param(
     [int]$Days = 90,
@@ -20,7 +20,7 @@ try {
         if ($ForestDomain) {
             $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest @credParam
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null

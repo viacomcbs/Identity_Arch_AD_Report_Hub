@@ -1,4 +1,4 @@
-﻿# Get-AdminSDHolderProtected.ps1
+# Get-AdminSDHolderProtected.ps1
 # Finds accounts protected by AdminSDHolder (adminCount=1)
 param(
     [string]$ForestDomain = "",
@@ -18,7 +18,7 @@ try {
         if ($ForestDomain) {
             $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest @credParam
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null

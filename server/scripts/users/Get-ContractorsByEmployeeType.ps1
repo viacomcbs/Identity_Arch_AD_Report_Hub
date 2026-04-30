@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain
 )
 
@@ -28,12 +28,7 @@ try {
     foreach ($domain in $domainsToQuery) {
         try {
             # All users (enabled and disabled) with a non-empty employeeType
-            $users = Get-ADUser -LDAPFilter '(&(objectClass=user)(employeeType=*))' ` @credParam
-                -Server $domain `
-                -Properties DisplayName, SamAccountName, mail, Enabled, `
-                    employeeType, extensionAttribute6, Department, Title, `
-                    AccountExpirationDate, PasswordLastSet, LastLogonDate, `
-                    WhenCreated, DistinguishedName -ErrorAction SilentlyContinue
+            $users = Get-ADUser -LDAPFilter '(&(objectClass=user)(employeeType=*))' -Server $domain -Properties DisplayName, SamAccountName, mail, Enabled, employeeType, extensionAttribute6, Department, Title, AccountExpirationDate, PasswordLastSet, LastLogonDate, WhenCreated, DistinguishedName -ErrorAction SilentlyContinue @credParam
 
             foreach ($user in @($users)) {
                 $daysUntilExpiry  = $null

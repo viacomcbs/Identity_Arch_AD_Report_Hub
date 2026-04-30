@@ -1,8 +1,8 @@
-﻿try {
+try {
     Import-Module ActiveDirectory -ErrorAction Stop
     $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
-    $forest = Get-ADForest @credParam
+    $forest = Get-ADForest @credParam
     $results = @()
 
     foreach ($gcServer in $forest.GlobalCatalogs) {

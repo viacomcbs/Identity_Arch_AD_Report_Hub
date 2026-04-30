@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain = "",
     [int]$Limit = 0
 )
@@ -43,9 +43,7 @@ try {
 
     foreach ($domain in @($forest.Domains)) {
         try {
-            $users = Get-ADUser -LDAPFilter $ldapFilter -Server $domain ` @credParam
-              -ResultPageSize 2000 -ResultSetSize $null `
-              -Properties extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager
+            $users = Get-ADUser -LDAPFilter $ldapFilter -Server $domain -ResultPageSize 2000 -ResultSetSize $null -Properties extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager @credParam
 
             foreach ($u in @($users)) {
                 $results.Add([PSCustomObject]@{

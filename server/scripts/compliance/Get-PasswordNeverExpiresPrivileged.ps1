@@ -1,4 +1,4 @@
-﻿# Get-PasswordNeverExpiresPrivileged.ps1
+# Get-PasswordNeverExpiresPrivileged.ps1
 # Finds accounts in privileged groups with "Password Never Expires" flag
 param(
     [string]$ForestDomain = "",
@@ -18,7 +18,7 @@ try {
         if ($ForestDomain) {
             $forest = Get-ADForest -Server $ForestDomain @credParam
         } else {
-            $forest = Get-ADForest @credParam
+            $forest = Get-ADForest @credParam
         }
     } catch {
         $forest = $null

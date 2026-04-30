@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Filter = "all",
     [string]$Format = "json",
     [int]$Limit = 1000
@@ -15,9 +15,7 @@ try {
         default    { "*" }
     }
     
-    $Users = Get-ADUser -Filter $ADFilter -Properties ` @credParam
-        DisplayName, EmailAddress, employeeID, employeeNumber, Title, Department, `
-        telephoneNumber, mobile, Manager, Enabled, WhenCreated, WhenChanged, LastLogonDate |
+    $Users = Get-ADUser -Filter $ADFilter -Properties DisplayName, EmailAddress, employeeID, employeeNumber, Title, Department, telephoneNumber, mobile, Manager, Enabled, WhenCreated, WhenChanged, LastLogonDate | @credParam
         Select-Object -First $Limit
     
     $Results = foreach ($User in $Users) {

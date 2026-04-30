@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)]
     [string]$TargetDomain
 )
@@ -7,8 +7,7 @@ try {
     Import-Module ActiveDirectory -ErrorAction Stop
     $credParam = if ($global:PSADCredential) { @{Credential = $global:PSADCredential} } else { @{} }
 
-    $Users = Get-ADUser -Filter 'Enabled -eq $true' -Server $TargetDomain -ResultPageSize 2000 -ResultSetSize $null -Properties ` @credParam
-        DisplayName, EmailAddress, Title, Department, Company, LastLogonDate, whenCreated
+    $Users = Get-ADUser -Filter 'Enabled -eq $true' -Server $TargetDomain -ResultPageSize 2000 -ResultSetSize $null -Properties DisplayName, EmailAddress, Title, Department, Company, LastLogonDate, whenCreated @credParam
 
     $Results = foreach ($User in $Users) {
         [PSCustomObject]@{

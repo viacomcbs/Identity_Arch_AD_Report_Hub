@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$false)]
     [int]$Days = 30
 )
@@ -23,9 +23,7 @@ try {
     foreach ($DomainName in $Forest.Domains) {
         try {
             # Get disabled computers that were modified recently (likely disabled date)
-            $Computers = Get-ADComputer -Filter { Enabled -eq $false -and Modified -ge $CutoffDate } -Server $DomainName -Properties ` @credParam
-                Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, `
-                Description, DNSHostName, Enabled, DistinguishedName -ErrorAction SilentlyContinue
+            $Computers = Get-ADComputer -Filter { Enabled -eq $false -and Modified -ge $CutoffDate } -Server $DomainName -Properties Name, OperatingSystem, OperatingSystemVersion, LastLogonDate, Created, Modified, Description, DNSHostName, Enabled, DistinguishedName -ErrorAction SilentlyContinue @credParam
             
             foreach ($Computer in $Computers) {
                 $Results += [PSCustomObject]@{

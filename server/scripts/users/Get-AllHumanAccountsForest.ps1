@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$TargetDomain = "",
     [int]$Limit = 0,
     [string]$OutputPath = ""
@@ -49,9 +49,7 @@ try {
         Write-Host "[$currentDomain/$domainCount] Querying domain: $domain ..." -ForegroundColor Cyan
         
         try {
-            $users = Get-ADUser -LDAPFilter $ldapFilter -Server $domain ` @credParam
-              -ResultPageSize 2000 -ResultSetSize $null `
-              -Properties extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager
+            $users = Get-ADUser -LDAPFilter $ldapFilter -Server $domain -ResultPageSize 2000 -ResultSetSize $null -Properties extensionAttribute6, employeeID, employeeNumber, Title, Department, Description, whenCreated, Enabled, Manager @credParam
 
             $domainUserCount = @($users).Count
             Write-Host "  Found $domainUserCount users in $domain" -ForegroundColor Green

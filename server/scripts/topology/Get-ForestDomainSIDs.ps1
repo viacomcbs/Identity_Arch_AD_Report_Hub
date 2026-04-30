@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Gets the SID of every domain in the AD forest.
 
@@ -29,7 +29,7 @@ try {
     if ($TargetDomain) {
         $forest = Get-ADForest -Server $TargetDomain @credParam
     } else {
-        $forest = Get-ADForest @credParam
+        $forest = Get-ADForest @credParam
     }
 
     $results = [System.Collections.Generic.List[PSObject]]::new()

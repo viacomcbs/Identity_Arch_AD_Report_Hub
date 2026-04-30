@@ -26,14 +26,11 @@ const Topology = () => {
   const [trustSidFilter, setTrustSidFilter] = useState('all'); // 'all' | 'enabled' | 'disabled'
 
   const predefinedQueries = [
-    { id: 'forest-info', label: 'Forest Information', description: 'AD Forest details and functional levels' },
-    { id: 'domains', label: 'All Domains', description: 'All domains in the forest' },
-    { id: 'trusts', label: 'AD Trusts', description: 'Forest and domain trust relationships' },
-    { id: 'naming-contexts', label: 'Naming Contexts', description: 'Directory partitions and naming contexts' },
-    { id: 'fsmo-roles', label: 'FSMO Role Holders', description: 'Flexible Single Master Operations roles' },
-    { id: 'ad-sites', label: 'AD Sites Summary', description: 'Sites with DC/subnet counts and site link connectivity' },
-    { id: 'site-links', label: 'Site-to-Site Replication', description: 'AD Site link replication topology' },
-    { id: 'dc-replication', label: 'DC Replication Status', description: 'DC-to-DC replication connections and status' },
+    { id: 'forest-info',      label: 'Forest Information',  description: 'AD Forest details and functional levels' },
+    { id: 'domains',          label: 'All Domains',         description: 'All domains in the forest' },
+    { id: 'trusts',           label: 'AD Trusts',           description: 'Forest and domain trust relationships' },
+    { id: 'naming-contexts',  label: 'Naming Contexts',     description: 'Directory partitions and naming contexts' },
+    { id: 'fsmo-roles',       label: 'FSMO Role Holders',   description: 'Flexible Single Master Operations roles' },
   ];
 
   const handleQuery = async (queryId) => {
@@ -253,99 +250,6 @@ const Topology = () => {
     </table>
   );
 
-  const renderSiteLinksTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="SiteLinkName" label="Site Link Name" />
-          <SortableHeader columnKey="Sites" label="Connected Sites" />
-          <SortableHeader columnKey="Cost" label="Cost" />
-          <SortableHeader columnKey="ReplicationInterval" label="Replication Interval" />
-          <SortableHeader columnKey="Schedule" label="Schedule" />
-          <SortableHeader columnKey="ChangeNotification" label="Change Notify" />
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedData.map((link, i) => (
-          <tr key={i}>
-            <td><strong>{link.SiteLinkName}</strong></td>
-            <td className="sites-cell">{link.Sites || '-'}</td>
-            <td>{link.Cost}</td>
-            <td>{link.ReplicationInterval} min</td>
-            <td>{link.Schedule || '24x7'}</td>
-            <td>
-              <span className={`status-badge ${link.ChangeNotification ? 'enabled' : 'disabled'}`}>
-                {link.ChangeNotification ? 'Yes' : 'No'}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderSitesSummaryTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="SiteName" label="Site Name" />
-          <SortableHeader columnKey="DCCount" label="DCs" />
-          <SortableHeader columnKey="SubnetCount" label="Subnets" />
-          <SortableHeader columnKey="SiteLinksCount" label="Site Links" />
-          <SortableHeader columnKey="LinkedSitesCount" label="Linked Sites" />
-          <SortableHeader columnKey="LinkedSites" label="Linked Site Names" />
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedData.map((site, i) => (
-          <tr key={i}>
-            <td><strong>{site.SiteName}</strong></td>
-            <td>{site.DCCount || 0}</td>
-            <td>{site.SubnetCount || 0}</td>
-            <td>{site.SiteLinksCount || 0}</td>
-            <td>{site.LinkedSitesCount || 0}</td>
-            <td className="sites-cell">{site.LinkedSites || '-'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
-  const renderDCReplicationTable = () => (
-    <table className="data-table">
-      <thead>
-        <tr>
-          <SortableHeader columnKey="SourceDC" label="Source DC" />
-          <SortableHeader columnKey="DestinationDC" label="Destination DC" />
-          <SortableHeader columnKey="NamingContext" label="Naming Context" />
-          <SortableHeader columnKey="LastReplication" label="Last Replication" />
-          <SortableHeader columnKey="ReplicationStatus" label="Status" />
-          <SortableHeader columnKey="FailureCount" label="Failures" />
-        </tr>
-      </thead>
-      <tbody>
-        {paginatedData.map((repl, i) => (
-          <tr key={i}>
-            <td>{repl.SourceDC}</td>
-            <td>{repl.DestinationDC}</td>
-            <td className="dn-cell">{repl.NamingContext || '-'}</td>
-            <td>{repl.LastReplication || 'Never'}</td>
-            <td>
-              <span className={`status-badge ${repl.ReplicationStatus === 'Success' ? 'enabled' : repl.ReplicationStatus === 'In Progress' ? 'warning' : 'disabled'}`}>
-                {repl.ReplicationStatus || 'Unknown'}
-              </span>
-            </td>
-            <td>
-              <span className={`failure-badge ${repl.FailureCount > 0 ? 'has-failures' : 'no-failures'}`}>
-                {repl.FailureCount || 0}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-
   const renderFSMOTable = () => (
     <table className="data-table">
       <thead>
@@ -415,12 +319,6 @@ const Topology = () => {
         return renderNamingContextsTable();
       case 'fsmo-roles':
         return renderFSMOTable();
-      case 'ad-sites':
-        return renderSitesSummaryTable();
-      case 'site-links':
-        return renderSiteLinksTable();
-      case 'dc-replication':
-        return renderDCReplicationTable();
       default:
         return null;
     }
